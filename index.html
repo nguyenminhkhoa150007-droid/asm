@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- ✅ FIX LỖI QUAN TRỌNG -->
+<!-- ✅ BẮT BUỘC dùng bản này -->
 <script src="https://unpkg.com/@eohjsc/era-widget@1.1.3/dist/index.min.js"></script>
 
 <style>
@@ -47,7 +47,7 @@ body {
 
 <script>
 // =====================
-// ERA INIT (CHUẨN)
+// ERA INIT
 // =====================
 let eraWidget = null;
 let control = null;
@@ -64,8 +64,10 @@ function initEra() {
         onConfiguration: (config) => {
             console.log("✅ CONFIG OK");
 
-            // lấy control để gửi về ESP32
+            // 🔥 QUAN TRỌNG: lấy control config
             control = config.control_configs?.[0];
+
+            console.log("CONTROL:", control);
         }
     });
 }
@@ -73,7 +75,7 @@ initEra();
 
 
 // =====================
-// CHỐNG SPAM DATA
+// CHỐNG SPAM
 // =====================
 let lastSend = 0;
 
@@ -84,11 +86,11 @@ let lastSend = 0;
 function sendXY(x, y) {
     if (!eraWidget || !control) return;
 
-    // tránh spam (20 lần/giây)
+    // tránh spam
     if (Date.now() - lastSend < 50) return;
     lastSend = Date.now();
 
-    // tránh lỗi WebSocket
+    // tránh lỗi WS
     if (!eraWidget.socket || eraWidget.socket.readyState !== 1) return;
 
     const data = `${x},${y}`;
@@ -99,7 +101,7 @@ function sendXY(x, y) {
 
 
 // =====================
-// JOYSTICK LOGIC
+// JOYSTICK
 // =====================
 const zone = document.getElementById('joy-zone');
 const puck = document.getElementById('joy-puck');
@@ -121,11 +123,11 @@ function move(e){
         dy = dy / dist * maxR;
     }
 
-    // move UI
+    // UI
     puck.style.transform =
         `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
 
-    // FIX NaN
+    // scale
     let x = maxR ? Math.round(dx / maxR * 100) : 0;
     let y = maxR ? Math.round(dy / maxR * 100) : 0;
 
