@@ -3,47 +3,32 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Joystick E-Ra</title>
+<title>Joystick</title>
 
 <style>
 body {
-    background: #050505;
-    color: white;
+    background: #000;
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
-    font-family: Arial;
 }
-
 #joy-zone {
     width: 260px;
     height: 260px;
     border-radius: 50%;
-    background: #111;
-    border: 3px solid #00e5ff;
+    border: 3px solid cyan;
     position: relative;
-    box-shadow: 0 0 25px #00e5ff55;
 }
-
 #joy-puck {
     width: 90px;
     height: 90px;
-    background: #00e5ff;
+    background: cyan;
     border-radius: 50%;
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    box-shadow: 0 0 25px #00e5ff;
-    transition: 0.2s;
-}
-
-#info {
-    position: absolute;
-    bottom: 20px;
-    text-align: center;
-    font-size: 18px;
 }
 </style>
 </head>
@@ -54,21 +39,14 @@ body {
     <div id="joy-puck"></div>
 </div>
 
-<div id="info">
-    X: <span id="xVal">0</span> |
-    Y: <span id="yVal">0</span>
-</div>
-
 <script src="https://eoh-jsc.github.io/era-widget/era_widget.js"></script>
 
 <script>
 let eraWidget = null;
 let eraConfig = null;
 
-/* ================= INIT ERA ================= */
 function initEra() {
     if (typeof EraWidget === 'undefined') {
-        console.warn("Đang chờ EraWidget...");
         setTimeout(initEra, 500);
         return;
     }
@@ -78,47 +56,30 @@ function initEra() {
     eraWidget.init({
         onConfiguration: (config) => {
             eraConfig = config;
-            console.log("✅ CONFIG OK:", config);
-        },
-        onValues: (values) => {
-            console.log("📡 VALUES:", values);
+            console.log("✅ CONFIG OK");
         }
     });
 }
-
 initEra();
 
-/* ================= JOYSTICK ================= */
 const zone = document.getElementById('joy-zone');
 const puck = document.getElementById('joy-puck');
 
-let drag = false;
-let cx = 0, cy = 0, maxR = 0;
+let drag = false, cx=0, cy=0, maxR=0;
 
-function sendXY(x, y) {
-    document.getElementById('xVal').innerText = x;
-    document.getElementById('yVal').innerText = y;
-
-    if (!eraWidget || !eraConfig) {
-        console.warn("❌ Chưa có config từ E-Ra");
-        return;
-    }
+function sendXY(x,y){
+    if (!eraWidget || !eraConfig) return;
 
     let control = eraConfig.control_configs?.[0];
+    if (!control) return;
 
-    if (!control) {
-        console.error("❌ Không tìm thấy V0 control");
-        return;
-    }
+    let data = `${x},${y}`;
+    console.log("SEND:", data);
 
-    let payload = JSON.stringify({ x: x, y: y });
-
-    console.log("🚀 SEND:", payload);
-
-    eraWidget.write(control.id, payload);
+    eraWidget.write(control.id, data);
 }
 
-function move(e) {
+function move(e){
     const px = e.touches ? e.touches[0].clientX : e.clientX;
     const py = e.touches ? e.touches[0].clientY : e.clientY;
 
@@ -128,71 +89,61 @@ function move(e) {
     let dist = Math.sqrt(dx*dx + dy*dy);
 
     if (dist > maxR) {
-        dx = dx / dist * maxR;
-        dy = dy / dist * maxR;
+        dx = dx/dist * maxR;
+        dy = dy/dist * maxR;
     }
 
     puck.style.transform =
         `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
 
-    let x = Math.round(dx / maxR * 100);
-    let y = Math.round(dy / maxR * 100);
+    let x = Math.round(dx/maxR*100);
+    let y = Math.round(dy/maxR*100);
 
-    sendXY(x, -y); // đảo trục Y
+    sendXY(x, -y);
 }
 
-/* MOUSE */
-zone.addEventListener('mousedown', e => {
+/* mouse */
+zone.onmousedown = e=>{
     drag = true;
-    puck.style.transition = 'none';
-
     maxR = zone.offsetWidth/2 - puck.offsetWidth/2;
-
-    let rect = zone.getBoundingClientRect();
-    cx = rect.left + rect.width/2;
-    cy = rect.top + rect.height/2;
-
+    let r = zone.getBoundingClientRect();
+    cx = r.left + r.width/2;
+    cy = r.top + r.height/2;
     move(e);
-});
+};
 
-document.addEventListener('mousemove', e => {
-    if (!drag) return;
-    move(e);
-});
+document.onmousemove = e=>{
+    if(drag) move(e);
+};
 
-document.addEventListener('mouseup', () => {
-    drag = false;
-    puck.style.transition = '0.2s';
-    puck.style.transform = 'translate(-50%, -50%)';
-    sendXY(0, 0);
-});
+document.onmouseup = ()=>{
+    drag=false;
+    puck.style.transform='translate(-50%,-50%)';
+    sendXY(0,0);
+};
 
-/* MOBILE */
-zone.addEventListener('touchstart', e => {
+/* mobile */
+zone.ontouchstart = e=>{
     drag = true;
-    puck.style.transition = 'none';
-
     maxR = zone.offsetWidth/2 - puck.offsetWidth/2;
-
-    let rect = zone.getBoundingClientRect();
-    cx = rect.left + rect.width/2;
-    cy = rect.top + rect.height/2;
-
+    let r = zone.getBoundingClientRect();
+    cx = r.left + r.width/2;
+    cy = r.top + r.height/2;
     move(e);
-}, {passive:false});
+};
 
-document.addEventListener('touchmove', e => {
-    if (!drag) return;
-    e.preventDefault();
-    move(e);
-}, {passive:false});
+document.ontouchmove = e=>{
+    if(drag){
+        e.preventDefault();
+        move(e);
+    }
+};
 
-document.addEventListener('touchend', () => {
-    drag = false;
-    puck.style.transition = '0.2s';
-    puck.style.transform = 'translate(-50%, -50%)';
-    sendXY(0, 0);
-});
+document.ontouchend = ()=>{
+    drag=false;
+    puck.style.transform='translate(-50%,-50%)';
+    sendXY(0,0);
+};
 </script>
 
 </body>
