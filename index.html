@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- ✅ BẮT BUỘC dùng bản này -->
 <script src="https://unpkg.com/@eohjsc/era-widget@1.1.3/dist/index.min.js"></script>
 
 <style>
@@ -16,8 +15,6 @@ body {
     align-items: center;
     height: 100vh;
 }
-
-/* JOYSTICK */
 #joy-zone {
     width: 260px;
     height: 260px;
@@ -25,7 +22,6 @@ body {
     border: 3px solid cyan;
     position: relative;
 }
-
 #joy-puck {
     width: 90px;
     height: 90px;
@@ -46,59 +42,41 @@ body {
 </div>
 
 <script>
-// =====================
-// ERA INIT
-// =====================
-let eraWidget = null;
+let eraWidget;
 let control = null;
 
-function initEra() {
-    if (typeof EraWidget === 'undefined') {
-        setTimeout(initEra, 300);
-        return;
-    }
+const era = new EraWidget();
 
-    eraWidget = new EraWidget();
+era.init({
+    onConfiguration: (config) => {
+        console.log("CONFIG:", config);
 
-    eraWidget.init({
-        onConfiguration: (config) => {
-            console.log("✅ CONFIG OK");
+        control = config.control_configs?.[0];
 
-            // 🔥 QUAN TRỌNG: lấy control config
-            control = config.control_configs?.[0];
-
-            console.log("CONTROL:", control);
+        if (!control) {
+            console.error("❌ KHÔNG CÓ CONTROL (chưa tạo V0 đúng)");
+        } else {
+            console.log("✅ CONTROL OK");
         }
-    });
-}
-initEra();
-
-
-// =====================
-// CHỐNG SPAM
-// =====================
-let lastSend = 0;
-
+    }
+});
 
 // =====================
 // GỬI DATA
 // =====================
-function sendXY(x, y) {
-    if (!eraWidget || !control) return;
+let lastSend = 0;
 
-    // tránh spam
+function sendXY(x, y) {
+    if (!control) return;
+
     if (Date.now() - lastSend < 50) return;
     lastSend = Date.now();
 
-    // tránh lỗi WS
-    if (!eraWidget.socket || eraWidget.socket.readyState !== 1) return;
-
     const data = `${x},${y}`;
-    console.log("📤 SEND:", data);
+    console.log("SEND:", data);
 
-    eraWidget.write(control.id, data);
+    era.write(control.id, data);
 }
-
 
 // =====================
 // JOYSTICK
@@ -107,7 +85,7 @@ const zone = document.getElementById('joy-zone');
 const puck = document.getElementById('joy-puck');
 
 let drag = false;
-let cx = 0, cy = 0, maxR = 0;
+let cx=0, cy=0, maxR=0;
 
 function move(e){
     const px = e.touches ? e.touches[0].clientX : e.clientX;
@@ -119,29 +97,24 @@ function move(e){
     let dist = Math.sqrt(dx*dx + dy*dy);
 
     if (dist > maxR) {
-        dx = dx / dist * maxR;
-        dy = dy / dist * maxR;
+        dx = dx/dist * maxR;
+        dy = dy/dist * maxR;
     }
 
-    // UI
     puck.style.transform =
         `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
 
-    // scale
-    let x = maxR ? Math.round(dx / maxR * 100) : 0;
-    let y = maxR ? Math.round(dy / maxR * 100) : 0;
+    let x = maxR ? Math.round(dx/maxR*100) : 0;
+    let y = maxR ? Math.round(dy/maxR*100) : 0;
 
     sendXY(x, -y);
 }
 
-
-// =====================
-// MOUSE
-// =====================
-zone.onmousedown = (e)=>{
+// mouse
+zone.onmousedown = e=>{
     drag = true;
 
-    const r = zone.getBoundingClientRect();
+    let r = zone.getBoundingClientRect();
     cx = r.left + r.width/2;
     cy = r.top + r.height/2;
 
@@ -150,25 +123,21 @@ zone.onmousedown = (e)=>{
     move(e);
 };
 
-document.onmousemove = (e)=>{
-    if (drag) move(e);
+document.onmousemove = e=>{
+    if(drag) move(e);
 };
 
 document.onmouseup = ()=>{
-    drag = false;
-
-    puck.style.transform = 'translate(-50%,-50%)';
+    drag=false;
+    puck.style.transform='translate(-50%,-50%)';
     sendXY(0,0);
 };
 
-
-// =====================
-// MOBILE
-// =====================
-zone.ontouchstart = (e)=>{
+// touch
+zone.ontouchstart = e=>{
     drag = true;
 
-    const r = zone.getBoundingClientRect();
+    let r = zone.getBoundingClientRect();
     cx = r.left + r.width/2;
     cy = r.top + r.height/2;
 
@@ -177,17 +146,16 @@ zone.ontouchstart = (e)=>{
     move(e);
 };
 
-document.ontouchmove = (e)=>{
-    if (drag){
+document.ontouchmove = e=>{
+    if(drag){
         e.preventDefault();
         move(e);
     }
 };
 
 document.ontouchend = ()=>{
-    drag = false;
-
-    puck.style.transform = 'translate(-50%,-50%)';
+    drag=false;
+    puck.style.transform='translate(-50%,-50%)';
     sendXY(0,0);
 };
 </script>
