@@ -3,1361 +3,71 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AGV·ERA — Control Panel</title>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<title>Joystick ESP32</title>
+
 <style>
-:root{
-  --bg:#04090f; --bg1:#060e1a; --bg2:#08131f;
-  --c1:#00e5ff;  --c2:#ff6d00;  --c3:#00e676;
-  --c4:#d500f9;  --c5:#ff1744;  --c6:#ffd740;
-  --border:rgba(0,229,255,.1);
-  --border2:rgba(255,109,0,.15);
-  --text:#b0c8d8; --muted:#2e4a60;
-  --fhud:'Orbitron',sans-serif;
-  --fbody:'Rajdhani',sans-serif;
-  --fmono:'Share Tech Mono',monospace;
-  --glow1:0 0 16px rgba(0,229,255,.4),0 0 40px rgba(0,229,255,.1);
-  --glow2:0 0 16px rgba(255,109,0,.45),0 0 40px rgba(255,109,0,.12);
-  --glow3:0 0 16px rgba(0,230,118,.4),0 0 40px rgba(0,230,118,.1);
-}
-*{margin:0;padding:0;box-sizing:border-box}
-html,body{width:100%;background:var(--bg);color:var(--text);font-family:var(--fbody);overflow-x:hidden;min-height:100vh}
-
-/* scanlines */
-body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
-  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.07) 3px,rgba(0,0,0,.07) 4px);
-  animation:scanMove 8s linear infinite;}
-@keyframes scanMove{from{background-position:0 0}to{background-position:0 100px}}
-
-/* grid bg */
-body::before{content:'';position:fixed;inset:0;pointer-events:none;
-  background-image:linear-gradient(rgba(0,229,255,.025) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(0,229,255,.025) 1px,transparent 1px);
-  background-size:48px 48px;}
-
-/* ── TOPBAR ── */
-.topbar{
-  background:linear-gradient(180deg,rgba(0,229,255,.05) 0%,transparent 100%);
-  border-bottom:1px solid var(--border);
-  padding:0 16px;height:52px;
-  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;
-  position:relative;
-}
-.topbar::after{
-  content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent 0%,var(--c1) 35%,var(--c2) 65%,transparent 100%);
-  opacity:.55;
-}
-.brand{display:flex;align-items:center;gap:8px}
-.brand-logo{font-family:var(--fhud);font-weight:900;font-size:16px;letter-spacing:5px;
-  color:var(--c1);text-shadow:var(--glow1);}
-.brand-badge{
-  padding:2px 8px;border-radius:3px;
-  background:linear-gradient(135deg,rgba(255,109,0,.2),rgba(255,109,0,.05));
-  border:1px solid rgba(255,109,0,.35);
-  font-family:var(--fhud);font-size:9px;font-weight:700;letter-spacing:3px;color:var(--c2);
+body {
+    background: #050505;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-family: Arial;
 }
 
-/* MODE TOGGLE */
-.mode-toggle-wrap{
-  display:flex;align-items:center;justify-content:center;gap:10px;
-}
-.mode-label{font-family:var(--fhud);font-size:9px;letter-spacing:2px;transition:color .3s}
-.mode-label.manual{color:var(--c2)}
-.mode-label.auto{color:var(--c3)}
-.toggle-track{
-  width:56px;height:26px;border-radius:13px;
-  background:rgba(255,109,0,.12);border:1px solid rgba(255,109,0,.3);
-  position:relative;cursor:pointer;transition:all .35s;
-  display:flex;align-items:center;padding:0 3px;
-}
-.toggle-track.is-auto{
-  background:rgba(0,230,118,.12);border-color:rgba(0,230,118,.35);
-}
-.toggle-thumb{
-  width:20px;height:20px;border-radius:50%;
-  background:radial-gradient(circle at 35% 35%,#ff9a42,#c74500);
-  box-shadow:0 0 12px rgba(255,109,0,.6);
-  transition:all .35s cubic-bezier(.34,1.56,.64,1);
-  position:relative;
-}
-.toggle-track.is-auto .toggle-thumb{
-  transform:translateX(30px);
-  background:radial-gradient(circle at 35% 35%,#69ffaa,#00aa50);
-  box-shadow:0 0 12px rgba(0,230,118,.6);
+#joy-zone {
+    width: 250px;
+    height: 250px;
+    border-radius: 50%;
+    background: #111;
+    border: 3px solid #00e5ff;
+    position: relative;
+    box-shadow: 0 0 20px #00e5ff55;
 }
 
-.topbar-right{text-align:right}
-#live-clock{font-family:var(--fmono);font-size:13px;color:var(--c1);text-shadow:var(--glow1);letter-spacing:1px}
-.conn-dots{display:flex;justify-content:flex-end;gap:6px;margin-top:2px}
-.cdot{width:6px;height:6px;border-radius:50%;animation:pulse 1.6s ease-in-out infinite}
-.cdot-g{background:var(--c3);box-shadow:0 0 8px var(--c3)}
-.cdot-o{background:var(--c2);box-shadow:0 0 8px var(--c2);animation-delay:.4s}
-.cdot-c{background:var(--c1);box-shadow:0 0 8px var(--c1);animation-delay:.8s}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.7)}}
-
-/* ── NAV ── */
-.nav{
-  display:flex;background:var(--bg1);
-  border-bottom:1px solid var(--border);
-  position:relative;
-}
-.nav-btn{
-  flex:1;padding:12px 8px 10px;border:none;background:transparent;
-  font-family:var(--fhud);font-size:9px;font-weight:700;
-  letter-spacing:2px;text-transform:uppercase;color:var(--muted);
-  cursor:pointer;border-bottom:2px solid transparent;
-  transition:all .22s;display:flex;flex-direction:column;align-items:center;gap:4px;
-}
-.nav-icon{font-size:15px;transition:transform .2s}
-.nav-btn.active{color:var(--c1);border-bottom-color:var(--c1);background:rgba(0,229,255,.03);text-shadow:var(--glow1)}
-.nav-btn.active .nav-icon{transform:scale(1.15)}
-.nav-btn:hover:not(.active){color:var(--text)}
-
-/* ── CONTENT ── */
-.content{padding:13px;max-width:920px;margin:0 auto}
-.tab{display:none}.tab.active{display:block;animation:rise .28s ease}
-@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-
-/* ── CARD ── */
-.card{
-  background:linear-gradient(145deg,rgba(8,19,31,.97),rgba(6,14,26,.99));
-  border:1px solid var(--border);border-radius:12px;
-  padding:15px;position:relative;overflow:hidden;margin-bottom:11px;
-}
-.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,var(--c1) 45%,var(--c2) 55%,transparent);opacity:.45}
-.card::after{content:'';position:absolute;bottom:0;right:0;width:30px;height:30px;
-  border-top:1px solid var(--border);border-left:1px solid var(--border);
-  border-radius:6px 0 0 0;opacity:.3;pointer-events:none}
-.ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
-.ct{font-family:var(--fhud);font-weight:700;font-size:10px;letter-spacing:3px;text-transform:uppercase}
-.badge{font-family:var(--fmono);font-size:9px;padding:3px 8px;border-radius:4px;letter-spacing:1px}
-
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-
-#auto-overlay{
-  display:none;position:absolute;inset:0;border-radius:12px;z-index:10;
-  background:rgba(4,9,15,.72);
-  align-items:center;justify-content:center;flex-direction:column;gap:8px;
-  backdrop-filter:blur(2px);
-}
-#auto-overlay.show{display:flex}
-.auto-label-big{
-  font-family:var(--fhud);font-size:20px;font-weight:900;letter-spacing:6px;
-  color:var(--c3);text-shadow:var(--glow3);
-  animation:autoPulse 2s ease-in-out infinite;
-}
-@keyframes autoPulse{0%,100%{opacity:.7;transform:scale(.98)}50%{opacity:1;transform:scale(1.02)}}
-.auto-sub{font-family:var(--fmono);font-size:10px;color:rgba(0,230,118,.5);letter-spacing:2px}
-
-/* ══════════ TAB 1 CTRL ══════════ */
-.ir5-wrap{margin-bottom:13px}
-.ir5-row{display:flex;gap:6px;margin-bottom:8px}
-.ir5-cell{
-  flex:1;height:52px;border-radius:8px;
-  background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.07);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-  transition:all .12s;position:relative;overflow:hidden;cursor:default;
-}
-.ir5-cell::after{
-  content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
-  border-radius:0 0 7px 7px;background:transparent;transition:all .12s;
-}
-.ir5-cell.on{
-  background:rgba(0,229,255,.1);border-color:rgba(0,229,255,.45);
-  box-shadow:0 0 20px rgba(0,229,255,.25),inset 0 0 14px rgba(0,229,255,.06);
-}
-.ir5-cell.on::after{background:var(--c1);box-shadow:0 0 10px var(--c1)}
-.ir5-label{font-family:var(--fmono);font-size:8px;color:var(--muted);letter-spacing:1px}
-.ir5-dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.12);transition:all .12s}
-.ir5-cell.on .ir5-dot{background:var(--c1);border-color:var(--c1);box-shadow:0 0 12px var(--c1)}
-.ir5-val{font-family:var(--fmono);font-size:9px;color:var(--muted);transition:color .12s}
-.ir5-cell.on .ir5-val{color:var(--c1)}
-
-.err-bar-wrap{margin-bottom:11px}
-.err-bar-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-.err-bar-label{font-family:var(--fmono);font-size:9px;color:var(--muted);letter-spacing:2px}
-.err-bar-val{font-family:var(--fhud);font-size:14px;font-weight:700;color:var(--c2);transition:color .2s}
-.err-bar-track{height:8px;background:rgba(255,255,255,.05);border-radius:4px;position:relative;overflow:hidden}
-.err-bar-center{position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.2)}
-.err-bar-fill{
-  height:100%;position:absolute;top:0;
-  border-radius:4px;transition:all .2s ease;
-  background:linear-gradient(90deg,var(--c2),var(--c6));
-  box-shadow:0 0 8px var(--c2);
+#joy-puck {
+    width: 80px;
+    height: 80px;
+    background: #00e5ff;
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 20px #00e5ff;
+    transition: 0.2s;
 }
 
-.spd-panel{
-  background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:10px;
-  padding:10px 13px;margin-bottom:10px;
+#info {
+    position: absolute;
+    bottom: 20px;
+    text-align: center;
+    font-size: 18px;
 }
-.spd-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-.spd-track{height:6px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden;position:relative}
-.spd-fill{height:100%;width:0%;border-radius:3px;
-  background:linear-gradient(90deg,var(--c3),#00ffaa);
-  box-shadow:0 0 10px var(--c3);transition:width .3s ease}
-
-.joy-wrap{display:flex;justify-content:center;margin-bottom:12px;position:relative}
-#joy-zone{
-  width:170px;height:170px;border-radius:50%;
-  background:radial-gradient(circle at 50% 40%,rgba(0,229,255,.05),rgba(0,0,0,.97));
-  border:1.5px solid rgba(0,229,255,.18);
-  box-shadow:var(--glow1),0 0 60px rgba(0,0,0,.9) inset;
-  position:relative;cursor:crosshair;touch-action:none;
-}
-.j-ring{position:absolute;border-radius:50%;border:1px solid rgba(0,229,255,.07);
-  top:50%;left:50%;transform:translate(-50%,-50%)}
-.j-cross::before,.j-cross::after{content:'';position:absolute;background:rgba(0,229,255,.07)}
-.j-cross::before{width:1px;height:100%;left:50%;transform:translateX(-50%)}
-.j-cross::after{height:1px;width:100%;top:50%;transform:translateY(-50%)}
-.j-cross{position:absolute;inset:0;pointer-events:none}
-.dlbl{position:absolute;font-family:var(--fhud);font-size:7px;color:rgba(0,229,255,.22);pointer-events:none;letter-spacing:1px}
-.dn{top:5px;left:50%;transform:translateX(-50%)}.ds{bottom:5px;left:50%;transform:translateX(-50%)}
-.dw{left:5px;top:50%;transform:translateY(-50%)}.de{right:5px;top:50%;transform:translateY(-50%)}
-#joy-puck{
-  position:absolute;width:56px;height:56px;border-radius:50%;
-  top:50%;left:50%;transform:translate(-50%,-50%);
-  background:radial-gradient(circle at 33% 28%,rgba(0,229,255,.95),rgba(0,100,180,.7) 55%,rgba(0,40,100,.9));
-  box-shadow:0 0 0 2px rgba(0,229,255,.35),0 0 28px rgba(0,229,255,.5),inset 0 2px 4px rgba(255,255,255,.25);
-  pointer-events:none;z-index:5;
-}
-#joy-puck::before{content:'';position:absolute;inset:5px;border-radius:50%;border:1px solid rgba(255,255,255,.2)}
-
-.cmd-row{
-  display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;
-  background:rgba(0,0,0,.5);border:1px solid var(--border);border-radius:9px;padding:11px 13px;
-  margin-bottom:9px;
-}
-.clbl{font-family:var(--fmono);font-size:8px;color:var(--muted);letter-spacing:2px;margin-bottom:3px}
-#cmd-out{font-family:var(--fhud);font-weight:900;font-size:20px;letter-spacing:4px;color:var(--c1);transition:all .15s}
-.arr-pad{display:grid;grid-template-columns:repeat(3,26px);gap:3px}
-.arr{width:26px;height:26px;border-radius:5px;
-  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
-  display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);transition:all .1s}
-.arr.lit{background:rgba(0,229,255,.14);border-color:var(--c1);color:var(--c1);box-shadow:0 0 10px rgba(0,229,255,.3)}
-
-.estop{
-  width:100%;padding:11px;border-radius:10px;
-  background:linear-gradient(135deg,rgba(255,23,68,.07),rgba(255,23,68,.02));
-  border:1px solid rgba(255,23,68,.35);
-  color:var(--c5);font-family:var(--fhud);font-weight:700;font-size:10px;letter-spacing:5px;
-  cursor:pointer;transition:all .2s;position:relative;overflow:hidden;
-}
-.estop::before{content:'';position:absolute;inset:0;
-  background:linear-gradient(90deg,transparent,rgba(255,23,68,.1),transparent);
-  transform:translateX(-100%);transition:transform .45s}
-.estop:hover::before{transform:translateX(100%)}
-.estop:hover{box-shadow:0 0 28px rgba(255,23,68,.22)}
-
-.pid-chart{height:52px;background:rgba(0,0,0,.45);border:1px solid var(--border);border-radius:8px;margin-bottom:11px;overflow:hidden;position:relative}
-#pid-canvas{position:absolute;inset:0;width:100%;height:100%}
-.pid-g{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
-.pk{background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:9px;padding:11px;position:relative;overflow:hidden}
-.pk::before{content:'';position:absolute;top:0;left:0;right:0;height:1px}
-.pk-kp::before{background:linear-gradient(90deg,transparent,#60a5fa,transparent)}
-.pk-ki::before{background:linear-gradient(90deg,transparent,var(--c1),transparent)}
-.pk-kd::before{background:linear-gradient(90deg,transparent,var(--c4),transparent)}
-.pk-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
-.pk-name{font-family:var(--fhud);font-weight:700;font-size:13px}
-.pk-val{font-family:var(--fmono);font-size:11px}
-
-.log{background:rgba(0,0,0,.6);border:1px solid var(--border);border-radius:7px;
-  padding:7px 11px;max-height:72px;overflow-y:auto;
-  scrollbar-width:thin;scrollbar-color:rgba(0,229,255,.12) transparent}
-.log-e{font-family:var(--fmono);font-size:10px;line-height:1.9;animation:rise .12s ease}
-.lg-cmd{color:rgba(0,229,255,.65)}
-.lg-auto{color:rgba(0,230,118,.65)}
-.lg-warn{color:rgba(255,109,0,.75)}
-.lg-err{color:rgba(255,23,68,.8)}
-
-/* ══════════ TAB 2 SENSORS ══════════ */
-.sc{background:linear-gradient(145deg,rgba(8,19,31,.97),rgba(6,14,26,.99));
-  border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;position:relative;overflow:hidden}
-.sc::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
-.sc-ir::before{background:linear-gradient(to bottom,var(--c1),#0060aa)}
-.sc-battery::before{background:linear-gradient(to bottom,#4ade80,#22c55e)}
-.sc-hcsr::before{background:linear-gradient(to bottom,var(--c3),#009900)}
-.sc-enc::before{background:linear-gradient(to bottom,var(--c2),#aa3300)}
-.sc-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
-.sc-name{font-family:var(--fhud);font-weight:700;font-size:13px}
-.sc-model{font-family:var(--fmono);font-size:9px;color:var(--muted);margin-top:2px}
-.sc-status{font-family:var(--fmono);font-size:9px;padding:2px 7px;border-radius:10px}
-.ss-ok{background:rgba(0,230,118,.08);border:1px solid rgba(0,230,118,.2);color:var(--c3)}
-.ss-warn{background:rgba(255,109,0,.08);border:1px solid rgba(255,109,0,.2);color:var(--c2)}
-
-.ir5-detail{display:flex;gap:5px;margin-bottom:10px}
-.ir5d-cell{
-  flex:1;border-radius:9px;padding:10px 5px;
-  background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.07);
-  display:flex;flex-direction:column;align-items:center;gap:6px;
-  transition:all .15s;
-}
-.ir5d-cell.on{
-  background:rgba(0,229,255,.1);border-color:rgba(0,229,255,.4);
-  box-shadow:0 0 18px rgba(0,229,255,.2),inset 0 0 10px rgba(0,229,255,.05);
-}
-.ir5d-lbl{font-family:var(--fhud);font-size:9px;letter-spacing:1px;color:var(--muted);transition:color .15s}
-.ir5d-cell.on .ir5d-lbl{color:var(--c1)}
-.ir5d-beam{width:4px;height:28px;border-radius:2px;background:rgba(255,255,255,.08);transition:all .15s}
-.ir5d-cell.on .ir5d-beam{background:var(--c1);box-shadow:0 0 12px var(--c1),0 0 24px rgba(0,229,255,.3)}
-.ir5d-dig{font-family:var(--fmono);font-size:11px;font-weight:700;color:var(--muted);transition:color .15s}
-.ir5d-cell.on .ir5d-dig{color:var(--c1)}
-
-.ir-history{width:100%;height:36px;border-radius:6px;background:rgba(0,0,0,.4);border:1px solid rgba(0,229,255,.08);display:block;margin-top:6px}
-.pos-text{
-  text-align:center;padding:8px;border-radius:8px;
-  background:rgba(0,0,0,.4);border:1px solid var(--border);
-  font-family:var(--fhud);font-size:11px;letter-spacing:3px;
-  margin-bottom:10px;transition:all .3s;
-}
-
-.gmeta{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
-.glabel{font-size:11px;color:var(--muted)}
-.gval{font-family:var(--fmono);font-size:19px;font-weight:700}
-.gunit{font-family:var(--fmono);font-size:10px;color:var(--muted);margin-left:2px}
-.gtrack{height:5px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden}
-.gfill{height:100%;border-radius:3px;transition:width .7s ease}
-.grange{display:flex;justify-content:space-between;font-family:var(--fmono);font-size:8px;color:var(--muted);margin-top:3px}
-.osc{width:100%;height:40px;border-radius:6px;background:rgba(0,0,0,.5);border:1px solid rgba(0,229,255,.06);margin-top:8px;display:block}
-
-.radar-wrap{display:flex;justify-content:center;margin:8px 0}
-.rpanel{background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center}
-.rpanel-val{font-family:var(--fhud);font-size:16px;font-weight:700;display:block}
-.rpanel-lbl{font-size:10px;color:var(--muted);letter-spacing:1px;display:block;margin-top:2px}
-.sc-foot{font-family:var(--fmono);font-size:9px;color:var(--muted);display:flex;gap:14px;margin-top:8px}
-
-/* ══════════ TAB 3 JOURNEY ══════════ */
-.journey-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:11px}
-.jstat{
-  background:linear-gradient(145deg,rgba(8,19,31,.97),rgba(6,14,26,.99));
-  border:1px solid var(--border);border-radius:10px;padding:11px;
-  text-align:center;position:relative;overflow:hidden;
-}
-.jstat::before{content:'';position:absolute;top:0;left:0;right:0;height:1px}
-.js1::before{background:linear-gradient(90deg,transparent,var(--c1),transparent)}
-.js2::before{background:linear-gradient(90deg,transparent,var(--c3),transparent)}
-.js3::before{background:linear-gradient(90deg,transparent,var(--c2),transparent)}
-.js4::before{background:linear-gradient(90deg,transparent,var(--c4),transparent)}
-.jstat-val{font-family:var(--fhud);font-size:15px;font-weight:700;display:block}
-.jstat-lbl{font-family:var(--fmono);font-size:8px;color:var(--muted);letter-spacing:1px;display:block;margin-top:3px}
-
-.path-card{
-  background:linear-gradient(145deg,rgba(8,19,31,.97),rgba(6,14,26,.99));
-  border:1px solid var(--border);border-radius:12px;padding:15px;margin-bottom:11px;
-}
-.path-wrap{
-  width:100%;aspect-ratio:16/7;min-height:140px;
-  background:rgba(0,0,0,.6);border-radius:9px;border:1px solid rgba(0,229,255,.08);
-  position:relative;overflow:hidden;
-}
-#path-canvas{position:absolute;inset:0;width:100%;height:100%}
-.path-legend{display:flex;gap:16px;margin-top:8px}
-.pleg{display:flex;align-items:center;gap:5px;font-family:var(--fmono);font-size:9px;color:var(--muted)}
-.pleg-dot{width:8px;height:8px;border-radius:50%}
-
-.hist-card{
-  background:linear-gradient(145deg,rgba(8,19,31,.97),rgba(6,14,26,.99));
-  border:1px solid var(--border);border-radius:12px;padding:15px;margin-bottom:11px;
-}
-.hist-row{display:flex;gap:8px;margin-bottom:8px}
-.hist-lbl{font-family:var(--fmono);font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:6px}
-#spd-hist{width:100%;height:52px;display:block;border-radius:6px;background:rgba(0,0,0,.45);border:1px solid rgba(0,229,255,.07)}
-#err-hist{width:100%;height:52px;display:block;border-radius:6px;background:rgba(0,0,0,.45);border:1px solid rgba(0,229,255,.07)}
-
-.lap-table{width:100%;border-collapse:collapse}
-.lap-table th{font-family:var(--fhud);font-size:8px;letter-spacing:2px;color:var(--muted);
-  padding:6px 10px;text-align:left;border-bottom:1px solid var(--border);font-weight:700}
-.lap-table td{font-family:var(--fmono);font-size:10px;padding:8px 10px;
-  border-bottom:1px solid rgba(255,255,255,.04);transition:background .2s}
-.lap-table tr:last-child td{border-bottom:none}
-.lap-table tr:hover td{background:rgba(0,229,255,.03)}
-.lap-best td{color:var(--c6) !important}
-
-.journey-btns{display:flex;gap:8px;margin-bottom:11px}
-.jbtn{
-  flex:1;padding:9px;border-radius:8px;border:1px solid;
-  font-family:var(--fhud);font-size:9px;letter-spacing:2px;cursor:pointer;transition:all .2s;
-}
-.jbtn-reset{background:rgba(255,23,68,.05);border-color:rgba(255,23,68,.3);color:var(--c5)}
-.jbtn-reset:hover{background:rgba(255,23,68,.1);box-shadow:0 0 16px rgba(255,23,68,.15)}
-.jbtn-lap{background:rgba(255,215,64,.05);border-color:rgba(255,215,64,.3);color:var(--c6)}
-.jbtn-lap:hover{background:rgba(255,215,64,.1)}
-
-.slbl{font-family:var(--fmono);font-size:9px;color:var(--muted);letter-spacing:3px;margin-bottom:6px}
-.divider{height:1px;background:var(--border);margin:11px 0}
-input[type=range]{cursor:pointer;width:100%}
-
-/* Cargo Export Area */
-.cargo-table{width:100%;border-collapse:collapse}
-.cargo-table th{font-family:var(--fhud);font-size:8px;letter-spacing:1.5px;color:var(--muted);
-  padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);font-weight:700}
-.cargo-table td{font-family:var(--fmono);font-size:10px;padding:7px 10px;
-  border-bottom:1px solid rgba(255,255,255,.04);transition:background .2s}
-.cargo-table tr:last-child td{border-bottom:none}
-.cargo-table tr:hover td{background:rgba(0,229,255,.025)}
 </style>
 </head>
+
 <body>
 
-<!-- ── TOPBAR ── -->
-<div class="topbar">
-  <div class="brand">
-    <div class="brand-logo">AGV</div>
-    <div class="brand-badge">ERA</div>
-  </div>
-
-  <div class="mode-toggle-wrap">
-    <span class="mode-label manual" id="lbl-manual">MANUAL</span>
-    <div class="toggle-track" id="mode-toggle" onclick="toggleMode()">
-      <div class="toggle-thumb" id="toggle-thumb"></div>
-    </div>
-    <span class="mode-label auto" id="lbl-auto" style="opacity:.35">AUTO</span>
-  </div>
-
-  <div class="topbar-right">
-    <div id="live-clock">00:00:00</div>
-    <div class="conn-dots">
-      <div class="cdot cdot-g" title="WiFi"></div>
-      <div class="cdot cdot-o" title="MQTT"></div>
-      <div class="cdot cdot-c" title="UDP"></div>
-    </div>
-  </div>
+<div id="joy-zone">
+    <div id="joy-puck"></div>
 </div>
 
-<!-- ── NAV ── -->
-<div class="nav">
-  <button class="nav-btn active" id="btn-ctrl" onclick="openTab('ctrl')">
-    <span class="nav-icon">🕹</span>ĐIỀU KHIỂN
-  </button>
-  <button class="nav-btn" id="btn-sensor" onclick="openTab('sensor')">
-    <span class="nav-icon">📡</span>CẢM BIẾN
-  </button>
-  <button class="nav-btn" id="btn-journey" onclick="openTab('journey')">
-    <span class="nav-icon">🗺</span>HÀNH TRÌNH
-  </button>
+<div id="info">
+    X: <span id="xVal">0</span> |
+    Y: <span id="yVal">0</span>
 </div>
 
-<div class="content">
-
-<!-- ══════════ TAB 1: ĐIỀU KHIỂN ══════════ -->
-<div id="tab-ctrl" class="tab active">
-  <div class="card" id="ctrl-card" style="position:relative">
-    <div id="auto-overlay">
-      <div class="auto-label-big">AUTO PID</div>
-      <div class="auto-sub">● ROBOT ĐANG TỰ HÀNH</div>
-      <div id="auto-pid-info" style="font-family:var(--fmono);font-size:9px;color:rgba(0,230,118,.4);margin-top:4px">ERR: 0 · OUT: 0</div>
-    </div>
-
-    <div class="ch">
-      <span class="ct" style="color:var(--c1)" id="mode-card-title">Điều Khiển Thủ Công</span>
-      <span class="badge" id="mode-badge" style="background:rgba(255,109,0,.1);border:1px solid rgba(255,109,0,.25);color:var(--c2)">MANUAL</span>
-    </div>
-
-    <div class="ir5-wrap">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
-        <span style="font-family:var(--fmono);font-size:9px;color:var(--muted);letter-spacing:2px">IR LINE SENSOR × 5</span>
-        <span id="line-pos-ctrl" style="font-family:var(--fmono);font-size:9px;color:var(--c1)">CENTER</span>
-      </div>
-      <div class="ir5-row" id="ir5-ctrl">
-        <div class="ir5-cell"><div class="ir5-dot"></div><span class="ir5-label">S1</span><span class="ir5-val">0</span></div>
-        <div class="ir5-cell"><div class="ir5-dot"></div><span class="ir5-label">S2</span><span class="ir5-val">0</span></div>
-        <div class="ir5-cell on"><div class="ir5-dot"></div><span class="ir5-label">S3</span><span class="ir5-val">1</span></div>
-        <div class="ir5-cell"><div class="ir5-dot"></div><span class="ir5-label">S4</span><span class="ir5-val">0</span></div>
-        <div class="ir5-cell"><div class="ir5-dot"></div><span class="ir5-label">S5</span><span class="ir5-val">0</span></div>
-      </div>
-    </div>
-
-    <div class="err-bar-wrap">
-      <div class="err-bar-head">
-        <span class="err-bar-label">LINE ERROR</span>
-        <span class="err-bar-val" id="err-val">0</span>
-      </div>
-      <div class="err-bar-track">
-        <div class="err-bar-center"></div>
-        <div class="err-bar-fill" id="err-fill" style="left:50%;width:0%"></div>
-      </div>
-    </div>
-
-    <div class="spd-panel">
-      <div class="spd-row">
-        <span style="font-family:var(--fmono);font-size:9px;color:var(--muted)">▶ TỐC ĐỘ</span>
-        <div style="display:flex;align-items:baseline;gap:4px">
-          <span id="spd-val" style="font-family:var(--fhud);font-size:17px;color:var(--c3)">0</span>
-          <span style="font-family:var(--fmono);font-size:10px;color:var(--muted)">cm/s</span>
-        </div>
-      </div>
-      <div class="spd-track"><div class="spd-fill" id="spd-fill"></div></div>
-    </div>
-
-    <div class="joy-wrap">
-      <div id="joy-zone">
-        <div class="j-ring" style="width:80%;height:80%"></div>
-        <div class="j-ring" style="width:48%;height:48%"></div>
-        <div class="j-cross"></div>
-        <span class="dlbl dn">N</span><span class="dlbl ds">S</span>
-        <span class="dlbl dw">W</span><span class="dlbl de">E</span>
-        <div id="joy-puck"></div>
-      </div>
-    </div>
-
-    <div class="cmd-row">
-      <div>
-        <div class="clbl">LỆNH PHÁT</div>
-        <div id="cmd-out">STOP</div>
-      </div>
-      <div class="arr-pad">
-        <div></div><div class="arr" id="aF">↑</div><div></div>
-        <div class="arr" id="aL">←</div>
-        <div class="arr" id="aS" style="font-size:8px">■</div>
-        <div class="arr" id="aR">→</div>
-        <div></div><div class="arr" id="aB">↓</div><div></div>
-      </div>
-    </div>
-
-    <button class="estop" onclick="doEStop()">⬡ EMERGENCY STOP</button>
-  </div>
-
-  <div class="card">
-    <div class="ch">
-      <span class="ct" style="color:var(--c4)">PID Controller</span>
-      <button onclick="savePID()" style="font-family:var(--fhud);font-size:8px;letter-spacing:2px;padding:4px 11px;border-radius:5px;background:rgba(213,0,249,.1);border:1px solid rgba(213,0,249,.3);color:var(--c4);cursor:pointer">FLASH</button>
-    </div>
-    <div class="pid-chart"><canvas id="pid-canvas"></canvas></div>
-    <div class="pid-g">
-      <div class="pk pk-kp">
-        <div class="pk-h"><span class="pk-name" style="color:#60a5fa">Kp</span><span id="kp-v" class="pk-val" style="color:#60a5fa">1.5</span></div>
-        <input type="range" min="0" max="10" step="0.1" value="1.5" style="accent-color:#60a5fa" oninput="updPID('kp',this.value)">
-      </div>
-      <div class="pk pk-ki">
-        <div class="pk-h"><span class="pk-name" style="color:var(--c1)">Ki</span><span id="ki-v" class="pk-val" style="color:var(--c1)">0.00</span></div>
-        <input type="range" min="0" max="5" step="0.01" value="0" style="accent-color:#00e5ff" oninput="updPID('ki',this.value)">
-      </div>
-      <div class="pk pk-kd">
-        <div class="pk-h"><span class="pk-name" style="color:var(--c4)">Kd</span><span id="kd-v" class="pk-val" style="color:var(--c4)">0.8</span></div>
-        <input type="range" min="0" max="10" step="0.1" value="0.8" style="accent-color:#d500f9" oninput="updPID('kd',this.value)">
-      </div>
-    </div>
-  </div>
-
-  <div class="slbl">// LOG</div>
-  <div class="log" id="cmd-log">
-    <div class="log-e lg-cmd">[SYS] AGV-01 BOOT OK</div>
-    <div class="log-e lg-cmd">[SYS] Mode: MANUAL · PID Kp=1.5 Ki=0.00 Kd=0.8</div>
-  </div>
-</div>
-
-<!-- ══════════ TAB 2: CẢM BIẾN ══════════ -->
-<div id="tab-sensor" class="tab">
-  <div class="sc sc-ir">
-    <div class="sc-head">
-      <div>
-        <div class="sc-name" style="color:var(--c1)">IR Line Sensor × 5</div>
-        <div class="sc-model">Digital Output · Arduino Nano D4–D8</div>
-      </div>
-      <span class="sc-status ss-ok" id="ir-status-badge">● ON LINE</span>
-    </div>
-    <div class="pos-text" id="pos-text-detail" style="color:var(--c1);border-color:rgba(0,229,255,.2)">
-      ● CENTER — ON LINE
-    </div>
-    <div class="ir5-detail" id="ir5-detail">
-      <div class="ir5d-cell"><span class="ir5d-lbl">S1</span><div class="ir5d-beam"></div><span class="ir5d-dig">0</span></div>
-      <div class="ir5d-cell"><span class="ir5d-lbl">S2</span><div class="ir5d-beam"></div><span class="ir5d-dig">0</span></div>
-      <div class="ir5d-cell on"><span class="ir5d-lbl">S3</span><div class="ir5d-beam"></div><span class="ir5d-dig">1</span></div>
-      <div class="ir5d-cell"><span class="ir5d-lbl">S4</span><div class="ir5d-beam"></div><span class="ir5d-dig">0</span></div>
-      <div class="ir5d-cell"><span class="ir5d-lbl">S5</span><div class="ir5d-beam"></div><span class="ir5d-dig">0</span></div>
-    </div>
-    <canvas id="ir-history" class="ir-history" height="36"></canvas>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
-      <div style="font-family:var(--fmono);font-size:9px;color:var(--muted)">
-        Weighted center: <span id="wc-val" style="color:var(--c1)">0.0</span> &nbsp;|&nbsp;
-        Error: <span id="err-detail" style="color:var(--c2)">0</span>
-      </div>
-      <div id="line-lost-badge" style="font-family:var(--fmono);font-size:9px;padding:2px 8px;border-radius:10px;background:rgba(0,230,118,.08);border:1px solid rgba(0,230,118,.2);color:var(--c3)">LINE OK</div>
-    </div>
-    <div class="sc-foot"><span>VCC: 5V</span><span>Logic: Digital</span><span>Sampling: 10ms</span><span>Threshold: adjustable</span></div>
-  </div>
-
-  <div class="sc sc-battery">
-    <div class="sc-head">
-      <div><div class="sc-name" style="color:#4ade80">Li-Po Battery</div><div class="sc-model">BMS · I2C Telemetry</div></div>
-      <span class="sc-status ss-ok" id="batt-status">● DISCHARGING</span>
-    </div>
-    <div class="g2" style="margin-bottom:8px">
-      <div>
-        <div class="gmeta">
-          <span class="glabel">Điện áp</span>
-          <div><span class="gval" id="batt-vol" style="color:#fcd34d">12.6</span><span class="gunit">V</span></div>
-        </div>
-        <div class="gtrack"><div class="gfill" id="batt-vol-bar" style="width:100%;background:linear-gradient(90deg,#f59e0b,#fbbf24);box-shadow:0 0 7px #fbbf24"></div></div>
-        <div class="grange"><span>9.0V</span><span>12.6V</span></div>
-      </div>
-      <div>
-        <div class="gmeta">
-          <span class="glabel">Dung lượng</span>
-          <div><span class="gval" id="batt-pct" style="color:#4ade80">100</span><span class="gunit">%</span></div>
-        </div>
-        <div class="gtrack"><div class="gfill" id="batt-pct-bar" style="width:100%;background:linear-gradient(90deg,#22c55e,#4ade80);box-shadow:0 0 7px #4ade80"></div></div>
-        <div class="grange"><span>0%</span><span>100%</span></div>
-      </div>
-    </div>
-    <canvas id="batt-osc" class="osc" height="40"></canvas>
-    <div class="sc-foot"><span>3S Li-Po</span><span>10000mAh</span><span><span id="batt-draw">0.5</span>A Draw</span></div>
-  </div>
-
-  <div class="sc sc-hcsr">
-    <div class="sc-head">
-      <div><div class="sc-name" style="color:var(--c3)">HC-SR04</div><div class="sc-model">Ultrasonic Distance · 40kHz</div></div>
-      <span class="sc-status ss-ok" id="hcsr-status">● CLEAR</span>
-    </div>
-    <div class="gmeta" style="margin-bottom:5px">
-      <span class="glabel">Khoảng cách</span>
-      <div><span class="gval" id="hcsr-dist" style="color:var(--c3)">34.2</span><span class="gunit">cm</span></div>
-    </div>
-    <div class="gtrack" style="margin-bottom:4px"><div class="gfill" id="hcsr-bar" style="width:17%;background:linear-gradient(90deg,var(--c3),#00cc00);box-shadow:0 0 7px var(--c3)"></div></div>
-    <div class="grange" style="margin-bottom:8px"><span>2cm</span><span>200cm</span></div>
-    <div class="radar-wrap"><canvas id="radar-canvas" width="100%" height="70" style="width:100%;border-radius:7px;background:rgba(0,0,0,.5);border:1px solid rgba(0,230,118,.08)"></canvas></div>
-    <div class="g3" style="margin-top:8px">
-      <div class="rpanel"><span class="rpanel-val" style="color:var(--c3)" id="radar-dist">34</span><span class="rpanel-lbl">cm</span></div>
-      <div class="rpanel"><span class="rpanel-val" style="color:var(--c6)" id="radar-time">2.0</span><span class="rpanel-lbl">ms echo</span></div>
-      <div class="rpanel" id="radar-status-box"><span class="rpanel-val" style="color:var(--c3);font-size:11px">CLEAR</span><span class="rpanel-lbl">status</span></div>
-    </div>
-    <div class="sc-foot"><span>Trig→Echo</span><span>Range 2–400cm</span><span>10μs pulse</span></div>
-  </div>
-
-  <div class="sc sc-enc">
-    <div class="sc-head">
-      <div><div class="sc-name" style="color:var(--c2)">Encoder</div><div class="sc-model">Quadrature Motor Feedback · INT</div></div>
-      <span class="sc-status ss-ok">● TRACKING</span>
-    </div>
-    <div class="g2" style="margin-bottom:8px">
-      <div>
-        <div class="gmeta"><span class="glabel">Motor A</span><div><span class="gval" id="rpm-a" style="color:var(--c2)">247</span><span class="gunit">rpm</span></div></div>
-        <div class="gtrack"><div class="gfill" id="rpm-a-bar" style="width:49%;background:linear-gradient(90deg,var(--c2),var(--c6));box-shadow:0 0 7px var(--c2)"></div></div>
-        <div class="grange"><span>0</span><span>500rpm</span></div>
-      </div>
-      <div>
-        <div class="gmeta"><span class="glabel">Motor B</span><div><span class="gval" id="rpm-b" style="color:var(--c2)">251</span><span class="gunit">rpm</span></div></div>
-        <div class="gtrack"><div class="gfill" id="rpm-b-bar" style="width:50%;background:linear-gradient(90deg,var(--c2),var(--c6));box-shadow:0 0 7px var(--c2)"></div></div>
-        <div class="grange"><span>0</span><span>500rpm</span></div>
-      </div>
-    </div>
-    <canvas id="enc-osc" class="osc" height="40"></canvas>
-    <div class="sc-foot"><span>PPR: 20</span><span>D2/D3 INT</span><span>Δ: <span id="enc-diff">+4</span></span></div>
-  </div>
-</div>
-
-<!-- ══════════ TAB 3: HÀNH TRÌNH ══════════ -->
-<div id="tab-journey" class="tab">
-  <div class="journey-stats">
-    <div class="jstat js1">
-      <span class="jstat-val" style="color:var(--c1)" id="j-dist">0.0</span>
-      <span class="jstat-lbl">MÉT ĐI</span>
-    </div>
-    <div class="jstat js2">
-      <span class="jstat-val" style="color:var(--c3)" id="j-time">00:00</span>
-      <span class="jstat-lbl">THỜI GIAN</span>
-    </div>
-    <div class="jstat js3">
-      <span class="jstat-val" style="color:var(--c2)" id="j-spd">0</span>
-      <span class="jstat-lbl">cm/s TB</span>
-    </div>
-    <div class="jstat js4">
-      <span class="jstat-val" style="color:var(--c4)" id="j-laps">0</span>
-      <span class="jstat-lbl">VÒNG</span>
-    </div>
-  </div>
-
-  <div class="path-card">
-    <div class="ch">
-      <span class="ct" style="color:var(--c1)">Bản Đồ Quỹ Đạo</span>
-      <span id="path-mode-badge" class="badge" style="background:rgba(255,109,0,.1);border:1px solid rgba(255,109,0,.25);color:var(--c2)">MANUAL</span>
-    </div>
-    <div class="path-wrap"><canvas id="path-canvas"></canvas></div>
-    <div class="path-legend">
-      <div class="pleg"><div class="pleg-dot" style="background:var(--c2)"></div>Thủ công</div>
-      <div class="pleg"><div class="pleg-dot" style="background:var(--c3)"></div>Tự động PID</div>
-      <div class="pleg"><div class="pleg-dot" style="background:var(--c5)"></div>Dừng khẩn</div>
-      <div class="pleg" style="margin-left:auto"><div class="pleg-dot" style="background:var(--c1);box-shadow:0 0 6px var(--c1)"></div>Vị trí hiện tại</div>
-    </div>
-  </div>
-
-  <div class="hist-card">
-    <div class="ch" style="margin-bottom:0">
-      <span class="ct" style="color:var(--c3)">Lịch Sử Tốc Độ &amp; Lỗi</span>
-    </div>
-    <div class="divider"></div>
-    <div class="slbl">TỐC ĐỘ (cm/s)</div>
-    <canvas id="spd-hist" height="52"></canvas>
-    <div class="divider"></div>
-    <div class="slbl">LINE ERROR</div>
-    <canvas id="err-hist" height="52"></canvas>
-  </div>
-
-  <div class="journey-btns">
-    <button class="jbtn jbtn-reset" onclick="resetJourney()">↺ RESET HÀNH TRÌNH</button>
-    <button class="jbtn jbtn-lap" onclick="markLap()">⊕ ĐÁNH DẤU VÒNG</button>
-  </div>
-
-  <div class="card">
-    <div class="ch">
-      <span class="ct" style="color:var(--c6)">Bảng Vòng Đua</span>
-      <span id="best-lap-badge" class="badge" style="background:rgba(255,215,64,.08);border:1px solid rgba(255,215,64,.25);color:var(--c6)">BEST: --</span>
-    </div>
-    <table class="lap-table" id="lap-table">
-      <thead><tr><th>#</th><th>THỜI GIAN</th><th>QUÃNG ĐƯỜNG</th><th>TỐC ĐỘ TB</th><th>CHẾ ĐỘ</th></tr></thead>
-      <tbody id="lap-tbody">
-        <tr><td colspan="5" style="color:var(--muted);text-align:center;padding:16px">Chưa có dữ liệu vòng</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- NHẬT KÝ NÂNG/TRẢ HÀNG & EXCEL EXPORT -->
-  <div class="card">
-    <div class="ch">
-      <span class="ct" style="color:#ffeb3b">Nhật Ký Nâng/Trả Hàng</span>
-      <button class="jbtn jbtn-lap" style="width:auto;padding:5px 12px;margin:0" onclick="exportCargoExcel()">↓ EXPORT EXCEL (.CSV)</button>
-    </div>
-    <table class="cargo-table" id="cargo-table">
-      <thead>
-        <tr><th>THỜI GIAN</th><th>HÀNH ĐỘNG</th><th>VỊ TRÍ</th><th>TRẠNG THÁI</th></tr>
-      </thead>
-      <tbody id="cargo-tbody">
-        <!-- Rendered by JS -->
-      </tbody>
-    </table>
-  </div>
-</div>
-
-</div>
-
-<script>
-// ══ E-RA IOT CONFIG ══
-const ERA_TOKEN = "YOUR_TOKEN_HERE"; // ĐIỀN AUTH TOKEN CỦA BẠN VÀO ĐÂY
-const ERA_API = "https://api.e-ra.vn"; // API chuẩn (thay đổi nếu E-Ra cung cấp link khác)
-
-// ══ STATE ══
-let isAuto = false;
-let lastCmd = 'STOP';
-const pid = { kp:1.5, ki:0, kd:0.8 };
-
-let journeyRunning = false;
-let journeyStartTime = null;
-let journeyDist = 0;
-let journeyLaps = 0;
-let lapStartTime = null;
-let lapStartDist = 0;
-let lapRows = [];
-let bestLapMs = Infinity;
-const spdHistory = Array(80).fill(0);
-const errHistory = Array(80).fill(0);
-const pathPoints = [];
-let agvX = 0.5, agvY = 0.5;
-let agvAngle = 0;
-
-let distT = 34, battPct = 100, battVol = 12.6, rpmAt = 247, rpmBt = 251;
-let oscPhase = 0, encPhase = 0;
-let irPattern = [0,0,1,0,0];
-let irError = 0;
-const irHistBuf = Array(80).fill(0);
-
-// Data giả lập Nâng/Trả hàng
-const cargoLogs = [
-  { time: '08:15:22', action: 'NÂNG HÀNG', loc: 'STATION A', status: 'THÀNH CÔNG' },
-  { time: '08:42:10', action: 'TRẢ HÀNG', loc: 'STATION B', status: 'THÀNH CÔNG' },
-  { time: '09:05:00', action: 'NÂNG HÀNG', loc: 'STATION C', status: 'THÀNH CÔNG' },
-  { time: '09:30:45', action: 'TRẢ HÀNG', loc: 'STATION D', status: 'LỖI SENSOR' },
-  { time: '10:15:12', action: 'NÂNG HÀNG', loc: 'STATION A', status: 'THÀNH CÔNG' }
-];
-
-setInterval(()=>{
-  document.getElementById('live-clock').textContent = new Date().toTimeString().slice(0,8);
-},1000);
-
-function openTab(id){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('tab-'+id).classList.add('active');
-  document.getElementById('btn-'+id).classList.add('active');
-}
-
-function toggleMode(){
-  isAuto = !isAuto;
-  const track = document.getElementById('mode-toggle');
-  const lManual = document.getElementById('lbl-manual');
-  const lAuto = document.getElementById('lbl-auto');
-  const overlay = document.getElementById('auto-overlay');
-  const badge = document.getElementById('mode-badge');
-  const title = document.getElementById('mode-card-title');
-  const pBadge = document.getElementById('path-mode-badge');
-
-  if(isAuto){
-    track.classList.add('is-auto');
-    lManual.style.opacity = '.35'; lAuto.style.opacity = '1';
-    overlay.classList.add('show');
-    badge.textContent = 'AUTO';
-    badge.style.cssText = 'background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.25);color:var(--c3)';
-    title.textContent = 'Chế Độ Tự Động';
-    if(pBadge){ pBadge.textContent='AUTO'; pBadge.style.cssText='background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.25);color:var(--c3)';}
-    setCmd('STOP');
-    addLog('[AUTO] Chuyển sang chế độ TỰ ĐỘNG — PID active','auto');
-    if(!journeyRunning) startJourney();
-  } else {
-    track.classList.remove('is-auto');
-    lManual.style.opacity = '1'; lAuto.style.opacity = '.35';
-    overlay.classList.remove('show');
-    badge.textContent = 'MANUAL';
-    badge.style.cssText = 'background:rgba(255,109,0,.1);border:1px solid rgba(255,109,0,.25);color:var(--c2)';
-    title.textContent = 'Điều Khiển Thủ Công';
-    if(pBadge){ pBadge.textContent='MANUAL'; pBadge.style.cssText='background:rgba(255,109,0,.1);border:1px solid rgba(255,109,0,.25);color:var(--c2)';}
-    setCmd('STOP');
-    addLog('[MANUAL] Chuyển sang chế độ THỦ CÔNG','warn');
-  }
-}
-
-const zone=document.getElementById('joy-zone'),puck=document.getElementById('joy-puck');
-let drag=false,jcx=0,jcy=0,mr=0;
-const arrowIds={FORWARD:'aF',BACKWARD:'aB',LEFT:'aL',RIGHT:'aR',STOP:'aS'};
-
-function setCmd(cmd){
-  if(cmd===lastCmd && cmd!=='STOP') return;
-  lastCmd=cmd;
-  const co=document.getElementById('cmd-out');
-  co.textContent=cmd;
-  const colors={STOP:'var(--c1)',FORWARD:'var(--c3)',BACKWARD:'var(--c3)',LEFT:'var(--c2)',RIGHT:'var(--c2)'};
-  co.style.color=colors[cmd]||'var(--c1)';
-  Object.values(arrowIds).forEach(id=>document.getElementById(id).classList.remove('lit'));
-  document.getElementById(arrowIds[cmd]||'aS').classList.add('lit');
-  const spd=cmd==='STOP'?0:Math.round(Math.random()*20+40);
-  document.getElementById('spd-fill').style.width=spd+'%';
-  document.getElementById('spd-val').textContent=cmd==='STOP'?'0':Math.round(spd*.85);
-  
-  // GỬI LỆNH ĐIỀU KHIỂN XUỐNG ESP32 QUA CHÂN V0
-  if(ERA_TOKEN !== "YOUR_TOKEN_HERE") {
-    const cmdMap = {STOP: 0, FORWARD: 1, BACKWARD: 2, LEFT: 3, RIGHT: 4};
-    fetch(`${ERA_API}/update?token=${ERA_TOKEN}&pin=V0&value=${cmdMap[cmd]||0}`)
-      .catch(e => console.error("Lỗi gửi E-Ra API:", e));
-  }
-
-  simIR(cmd); addLog('[CMD] '+cmd,'cmd');
-  if(cmd!=='STOP' && !journeyRunning) startJourney();
-  updateSpdHistory(cmd==='STOP'?0:Math.round(spd*.85));
-}
-
-function movePuck(e){
-  if(isAuto) return;
-  const px=e.touches?e.touches[0].clientX:e.clientX;
-  const py=e.touches?e.touches[0].clientY:e.clientY;
-  let dx=px-jcx,dy=py-jcy,d=Math.sqrt(dx*dx+dy*dy);
-  if(d>mr){dx=dx/d*mr;dy=dy/d*mr;}
-  puck.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;
-  let cmd='STOP';
-  if(d>15) cmd=Math.abs(dx)>Math.abs(dy)?(dx>0?'RIGHT':'LEFT'):(dy>0?'BACKWARD':'FORWARD');
-  setCmd(cmd);
-  setError(Math.round(dx/mr*100));
-}
-
-zone.addEventListener('mousedown',e=>{
-  if(isAuto)return; drag=true;puck.style.transition='none';mr=zone.offsetWidth/2-puck.offsetWidth/2;
-  const r=zone.getBoundingClientRect();jcx=r.left+r.width/2;jcy=r.top+r.height/2;movePuck(e);
-});
-document.addEventListener('mousemove',e=>{if(!drag||isAuto)return;e.preventDefault();movePuck(e);});
-document.addEventListener('mouseup',()=>{
-  if(!drag)return;drag=false;
-  puck.style.transition='transform .28s cubic-bezier(.34,1.56,.64,1)';
-  puck.style.transform='translate(-50%,-50%)';
-  if(!isAuto){setCmd('STOP');setError(0);}
-});
-zone.addEventListener('touchstart',e=>{
-  if(isAuto)return;drag=true;puck.style.transition='none';mr=zone.offsetWidth/2-puck.offsetWidth/2;
-  const r=zone.getBoundingClientRect();jcx=r.left+r.width/2;jcy=r.top+r.height/2;movePuck(e);
-},{passive:false});
-document.addEventListener('touchmove',e=>{if(!drag||isAuto)return;e.preventDefault();movePuck(e);},{passive:false});
-document.addEventListener('touchend',()=>{
-  if(!drag)return;drag=false;
-  puck.style.transition='transform .28s cubic-bezier(.34,1.56,.64,1)';
-  puck.style.transform='translate(-50%,-50%)';
-  if(!isAuto){setCmd('STOP');setError(0);}
-});
-
-const irPositions = { STOP:[0,0,1,0,0], FORWARD:[0,0,1,0,0], LEFT:[0,0,0,1,1], RIGHT:[1,1,0,0,0], BACKWARD:[0,1,1,1,0] };
-function simIR(cmd){
-  irPattern = (irPositions[cmd]||[0,0,1,0,0]).slice();
-  updateIRDisplay();
-  const pos={STOP:'CENTER',FORWARD:'CENTER',LEFT:'DRIFT PHẢI',RIGHT:'DRIFT TRÁI',BACKWARD:'ON LINE'};
-  const posEl=document.getElementById('line-pos-ctrl');
-  if(posEl) posEl.textContent=pos[cmd]||'CENTER';
-}
-
-function simIRAuto(err){
-  irPattern=[0,0,0,0,0];
-  const center=2+err;
-  const ci=Math.max(0,Math.min(4,Math.round(center)));
-  irPattern[ci]=1;
-  if(ci>0 && Math.abs(err)%1>.4) irPattern[ci-1]=1;
-  if(ci<4 && Math.abs(err)%1>.4) irPattern[ci+1]=1;
-  updateIRDisplay();
-  const posLabels=['FAR LEFT','LEFT','CENTER','RIGHT','FAR RIGHT'];
-  const posEl=document.getElementById('line-pos-ctrl');
-  if(posEl) posEl.textContent=posLabels[ci]||'CENTER';
-}
-
-function updateIRDisplay(){
-  const ctrlCells=document.querySelectorAll('#ir5-ctrl .ir5-cell');
-  ctrlCells.forEach((c,i)=>{
-    c.classList.toggle('on',!!irPattern[i]);
-    c.querySelector('.ir5-val').textContent=irPattern[i]?'1':'0';
-  });
-  const detCells=document.querySelectorAll('#ir5-detail .ir5d-cell');
-  detCells.forEach((c,i)=>{
-    c.classList.toggle('on',!!irPattern[i]);
-    c.querySelector('.ir5d-dig').textContent=irPattern[i]?'1':'0';
-  });
-  let wSum=0,wTot=0;
-  irPattern.forEach((v,i)=>{if(v){wSum+=i*v;wTot+=v;}});
-  const wc=wTot?wSum/wTot-2:0;
-  document.getElementById('wc-val').textContent=wc.toFixed(1);
-  document.getElementById('err-detail').textContent=Math.round(wc*50);
-  const lostEl=document.getElementById('line-lost-badge');
-  const posText=document.getElementById('pos-text-detail');
-  const allOff=irPattern.every(v=>!v);
-  if(allOff){
-    lostEl.textContent='LINE LOST';lostEl.style.cssText='font-family:var(--fmono);font-size:9px;padding:2px 8px;border-radius:10px;background:rgba(255,23,68,.1);border:1px solid rgba(255,23,68,.3);color:var(--c5)';
-    if(posText){posText.textContent='⚠ LINE LOST';posText.style.color='var(--c5)';posText.style.borderColor='rgba(255,23,68,.3)';}
-    document.getElementById('ir-status-badge').textContent='● LINE LOST';
-    document.getElementById('ir-status-badge').className='sc-status ss-warn';
-  } else {
-    lostEl.textContent='LINE OK';lostEl.style.cssText='font-family:var(--fmono);font-size:9px;padding:2px 8px;border-radius:10px;background:rgba(0,230,118,.08);border:1px solid rgba(0,230,118,.2);color:var(--c3)';
-    const ci=irPattern.indexOf(1);
-    const labels=['FAR LEFT','LEFT','CENTER','RIGHT','FAR RIGHT'];
-    const lbl=labels[ci]||'CENTER';
-    if(posText){posText.textContent='● '+lbl+' — ON LINE';posText.style.color='var(--c1)';posText.style.borderColor='rgba(0,229,255,.2)';}
-    document.getElementById('ir-status-badge').textContent='● ON LINE';
-    document.getElementById('ir-status-badge').className='sc-status ss-ok';
-  }
-}
-
-function setError(err){
-  irError=err;
-  const val=document.getElementById('err-val');
-  const fill=document.getElementById('err-fill');
-  if(!val||!fill)return;
-  val.textContent=err;
-  val.style.color=Math.abs(err)<20?'var(--c3)':Math.abs(err)<60?'var(--c2)':'var(--c5)';
-  const pct=Math.abs(err)/2;
-  if(err>=0){ fill.style.left='50%'; fill.style.width=pct+'%';}
-  else{ fill.style.left=(50-pct)+'%'; fill.style.width=pct+'%';}
-  errHistory.push(err/100); errHistory.shift();
-  irHistBuf.push(err/100); irHistBuf.shift();
-}
-
-function doEStop(){
-  setCmd('STOP');
-  document.getElementById('cmd-out').style.color='var(--c5)';
-  document.getElementById('cmd-out').textContent='E-STOP';
-  addLog('[ESTOP] ‼ EMERGENCY STOP','err');
-  if(pathPoints.length) pathPoints[pathPoints.length-1].estop=true;
-}
-
-function updPID(k,v){
-  pid[k]=parseFloat(v);
-  const el=document.getElementById(k+'-v');
-  el.textContent=k==='ki'?parseFloat(v).toFixed(2):parseFloat(v).toFixed(1);
-}
-function savePID(){ addLog(`[PID] FLASH → Kp=${pid.kp} Ki=${pid.ki.toFixed(2)} Kd=${pid.kd}`,'auto'); alert(`✓ Đã ghi ROM:\nKp: ${pid.kp}  Ki: ${pid.ki.toFixed(2)}  Kd: ${pid.kd}`); }
-
-const logEl=document.getElementById('cmd-log');
-function addLog(msg,type='cmd'){
-  const t=new Date().toTimeString().slice(0,8);
-  const d=document.createElement('div');
-  const cls={cmd:'lg-cmd',auto:'lg-auto',warn:'lg-warn',err:'lg-err'};
-  d.className='log-e '+(cls[type]||'lg-cmd');
-  d.textContent=`[${t}] ${msg}`;
-  logEl.appendChild(d); logEl.scrollTop=logEl.scrollHeight;
-  if(logEl.children.length>40) logEl.removeChild(logEl.firstChild);
-}
-
-function startJourney(){
-  if(journeyRunning) return;
-  journeyRunning=true;
-  journeyStartTime=Date.now();
-  lapStartTime=Date.now();
-  lapStartDist=journeyDist;
-}
-
-function resetJourney(){
-  journeyRunning=false;journeyStartTime=null;
-  journeyDist=0;journeyLaps=0;lapRows=[];bestLapMs=Infinity;
-  pathPoints.length=0;agvX=0.5;agvY=0.5;agvAngle=0;
-  spdHistory.fill(0);errHistory.fill(0);
-  document.getElementById('j-dist').textContent='0.0';
-  document.getElementById('j-time').textContent='00:00';
-  document.getElementById('j-spd').textContent='0';
-  document.getElementById('j-laps').textContent='0';
-  document.getElementById('lap-tbody').innerHTML='<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:16px">Chưa có dữ liệu vòng</td></tr>';
-  document.getElementById('best-lap-badge').textContent='BEST: --';
-  addLog('[JOURNEY] Reset hành trình','warn');
-}
-
-function markLap(){
-  if(!journeyRunning){startJourney();return;}
-  journeyLaps++;
-  const lapMs=Date.now()-lapStartTime;
-  const lapDist=journeyDist-lapStartDist;
-  const lapSpd=lapDist/(lapMs/1000)||0;
-  lapRows.push({n:journeyLaps, ms:lapMs, dist:lapDist, spd:lapSpd, mode:isAuto?'AUTO':'MANUAL'});
-  if(lapMs<bestLapMs){bestLapMs=lapMs; document.getElementById('best-lap-badge').textContent='BEST: '+fmtMs(lapMs);}
-  lapStartTime=Date.now(); lapStartDist=journeyDist;
-  renderLapTable();
-  document.getElementById('j-laps').textContent=journeyLaps;
-  addLog(`[LAP] Vòng #${journeyLaps} — ${fmtMs(lapMs)} · ${lapDist.toFixed(1)}m`,'auto');
-}
-
-function fmtMs(ms){ const s=Math.floor(ms/1000),m=Math.floor(s/60); return `${String(m).padStart(2,'0')}:${String(s%60).padStart(2,'0')}.${String(ms%1000).slice(0,1)}`;}
-
-function renderLapTable(){
-  const tb=document.getElementById('lap-tbody');
-  tb.innerHTML='';
-  [...lapRows].reverse().forEach(r=>{
-    const tr=document.createElement('tr');
-    if(r.ms===bestLapMs) tr.className='lap-best';
-    tr.innerHTML=`<td>#${r.n}</td><td>${fmtMs(r.ms)}</td><td>${r.dist.toFixed(1)}m</td><td>${r.spd.toFixed(1)} cm/s</td><td style="color:${r.mode==='AUTO'?'var(--c3)':'var(--c2)'}">${r.mode}</td>`;
-    tb.appendChild(tr);
-  });
-}
-
-function updateSpdHistory(spd){
-  spdHistory.push(spd); spdHistory.shift();
-  if(journeyRunning) journeyDist+=spd*0.018/100;
-}
-
-let autoErrTarget=0, autoErrCur=0;
-function autoStep(){
-  if(!isAuto) return;
-  autoErrTarget+=(Math.random()-.5)*.8;
-  autoErrTarget=Math.max(-2,Math.min(2,autoErrTarget));
-  autoErrCur+=(autoErrTarget-autoErrCur)*0.15;
-  const err=autoErrCur;
-  simIRAuto(err);
-  setError(Math.round(err*50));
-  const pidOut=-(pid.kp*err+pid.kd*(err-autoErrCur));
-  const spd=Math.round(50-Math.abs(pidOut)*5);
-  document.getElementById('spd-fill').style.width=spd+'%';
-  document.getElementById('spd-val').textContent=spd;
-  document.getElementById('auto-pid-info').textContent=`ERR: ${err.toFixed(1)} · OUT: ${pidOut.toFixed(1)}`;
-  updateSpdHistory(spd);
-  document.getElementById('cmd-out').textContent='AUTO';
-  document.getElementById('cmd-out').style.color='var(--c3)';
-  const dir=err>0.4?'RIGHT':err<-0.4?'LEFT':'FORWARD';
-  document.getElementById(arrowIds[dir]||'aF').classList.add('lit');
-  setTimeout(()=>{ document.querySelectorAll('.arr').forEach(a=>a.classList.remove('lit')); document.getElementById(arrowIds[dir]||'aF').classList.add('lit'); },50);
-}
-
-// ══ VẼ RENDER BẢNG NÂNG TRẢ HÀNG ══
-function renderCargoLog() {
-  const tb = document.getElementById('cargo-tbody');
-  if(!tb) return;
-  tb.innerHTML = '';
-  cargoLogs.forEach(r => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${r.time}</td>
-      <td style="color:${r.action.includes('NÂNG') ? 'var(--c1)' : 'var(--c6)'}">${r.action}</td>
-      <td>${r.loc}</td>
-      <td style="color:${r.status.includes('THÀNH CÔNG') ? 'var(--c3)' : 'var(--c5)'}">${r.status}</td>
-    `;
-    tb.appendChild(tr);
-  });
-}
-
-// ══ XUẤT EXCEL (CSV UTF-8) ══
-function exportCargoExcel() {
-  let csvContent = "\uFEFF"; // Thêm BOM để Excel đọc đúng tiếng Việt
-  csvContent += "THỜI GIAN,HÀNH ĐỘNG,VỊ TRÍ,TRẠNG THÁI\n";
-  cargoLogs.forEach(row => {
-    csvContent += `${row.time},${row.action},${row.loc},${row.status}\n`;
-  });
-
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.setAttribute("href", url);
-  link.setAttribute("download", "agv_nhat_ky_hang_hoa.csv");
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  
-  addLog('[EXPORT] Đã xuất file báo cáo nâng/trả hàng (CSV)', 'cmd');
-}
-
-
-let pidAnim=0;
-function drawPID(){
-  const c=document.getElementById('pid-canvas');if(!c)return;
-  c.width=c.offsetWidth;const W=c.width,H=52;
-  const ctx=c.getContext('2d');ctx.clearRect(0,0,W,H);
-  ctx.strokeStyle='rgba(255,255,255,.04)';ctx.lineWidth=1;
-  for(let y=0;y<H;y+=13){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
-  ctx.strokeStyle='rgba(255,255,255,.1)';ctx.setLineDash([3,6]);ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(0,H*.22);ctx.lineTo(W,H*.22);ctx.stroke();ctx.setLineDash([]);
-  const g=ctx.createLinearGradient(0,0,W,0);
-  g.addColorStop(0,'rgba(213,0,249,.7)');g.addColorStop(1,'rgba(0,229,255,.8)');
-  ctx.strokeStyle=g;ctx.lineWidth=1.8;ctx.beginPath();
-  for(let i=0;i<W;i++){
-    const t=(i/W)*4;
-    const r=1-Math.exp(-pid.kp*t/2)*Math.cos(pid.kd*t+pid.ki*Math.sin(t));
-    const y=H*.9-r*(H*.72);
-    i===0?ctx.moveTo(i,y):ctx.lineTo(i,y);
-  }
-  ctx.stroke();
-  pidAnim=(pidAnim+0.008)%1;
-  const pt=pidAnim*4,pr=1-Math.exp(-pid.kp*pt/2)*Math.cos(pid.kd*pt+pid.ki*Math.sin(pt));
-  const px=pidAnim*W,py=H*.9-pr*(H*.72);
-  ctx.beginPath();ctx.arc(px,py,3.5,0,Math.PI*2);
-  ctx.fillStyle='#fff';ctx.shadowBlur=12;ctx.shadowColor='var(--c1)';ctx.fill();ctx.shadowBlur=0;
-}
-
-let battPh=0;
-function drawBatt(){
-  const c=document.getElementById('batt-osc');if(!c)return;
-  c.width=c.offsetWidth;const W=c.width,H=40;
-  const ctx=c.getContext('2d');ctx.clearRect(0,0,W,H);
-  const drawRate = (isAuto || lastCmd !== 'STOP') ? 12 : 2;
-  const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'rgba(74,222,128,.3)');g.addColorStop(1,'rgba(74,222,128,0)');
-  ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(0,H);
-  for(let x=0;x<W;x++){const y=H/2-Math.sin(x*.05+battPh)*drawRate-Math.sin(x*.02+battPh*.5)*3;ctx.lineTo(x,y);}
-  ctx.lineTo(W,H);ctx.closePath();ctx.fill();
-  ctx.strokeStyle='rgba(74,222,128,.8)';ctx.lineWidth=1.4;ctx.beginPath();
-  for(let x=0;x<W;x++){const y=H/2-Math.sin(x*.05+battPh)*drawRate-Math.sin(x*.02+battPh*.5)*3;x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
-  ctx.stroke();
-  battPh += (isAuto || lastCmd !== 'STOP') ? 0.08 : 0.02;
-}
-
-let radPh=0;
-function drawRadar(){
-  const c=document.getElementById('radar-canvas');if(!c)return;
-  const W=c.offsetWidth||320;c.width=W;c.height=70;
-  const ctx=c.getContext('2d'),H=70;ctx.clearRect(0,0,W,H);
-  const dist=distT;const objX=Math.min((dist/200)*W,W-14);
-  const bg=ctx.createLinearGradient(0,0,W,0);bg.addColorStop(0,'rgba(0,204,0,.06)');bg.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-  for(let x=W/5;x<W;x+=W/5){ctx.strokeStyle='rgba(0,230,118,.05)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
-  radPh=(radPh+.035)%1;
-  [0,.34,.67].forEach(off=>{
-    const ph=(radPh+off)%1,x=ph*objX,al=Math.max(0,1-ph)*.55;
-    const g=ctx.createLinearGradient(x-5,0,x+5,0);
-    g.addColorStop(0,'transparent');g.addColorStop(.5,`rgba(0,230,118,${al})`);g.addColorStop(1,'transparent');
-    ctx.fillStyle=g;ctx.fillRect(x-5,0,10,H);
-  });
-  const sg=ctx.createLinearGradient(0,0,12,0);sg.addColorStop(0,'rgba(0,230,118,.9)');sg.addColorStop(1,'rgba(0,230,118,.2)');
-  ctx.fillStyle=sg;ctx.fillRect(0,H*.18,10,H*.64);
-  const isClose=dist<20;
-  ctx.fillStyle=isClose?'rgba(255,23,68,.85)':'rgba(255,255,255,.25)';
-  ctx.fillRect(objX,H*.1,8,H*.8);
-  ctx.fillStyle=isClose?'var(--c5)':'rgba(0,230,118,.8)';
-  ctx.font=`9px 'Share Tech Mono',monospace`;ctx.fillText(dist.toFixed(1)+'cm',Math.max(0,objX-18),H-4);
-  document.getElementById('radar-dist').textContent=Math.round(dist);
-  document.getElementById('radar-time').textContent=(dist/17).toFixed(1);
-  const rsBox=document.getElementById('radar-status-box');
-  if(rsBox){ rsBox.querySelector('.rpanel-val').textContent=isClose?'⚠ CLOSE':'CLEAR'; rsBox.querySelector('.rpanel-val').style.color=isClose?'var(--c5)':'var(--c3)';}
-}
-
-let encPh2=0;
-const rpmHistBuf=Array(60).fill(250);
-function drawEnc(){
-  const c=document.getElementById('enc-osc');if(!c)return;
-  c.width=c.offsetWidth;const W=c.width,H=40;
-  const ctx=c.getContext('2d');ctx.clearRect(0,0,W,H);
-  const mn=Math.min(...rpmHistBuf)-10,mx=Math.max(...rpmHistBuf)+10,rng=mx-mn||1;
-  const pts=rpmHistBuf.map((v,i)=>({x:(i/(rpmHistBuf.length-1))*W,y:H-4-((v-mn)/rng)*(H-8)}));
-  const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'rgba(255,109,0,.35)');g.addColorStop(1,'rgba(255,109,0,0)');
-  ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(0,H);pts.forEach(p=>ctx.lineTo(p.x,p.y));ctx.lineTo(W,H);ctx.closePath();ctx.fill();
-  ctx.strokeStyle='rgba(255,109,0,.85)';ctx.lineWidth=1.4;ctx.beginPath();pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));ctx.stroke();
-}
-
-function drawIRHistory(){
-  const c=document.getElementById('ir-history');if(!c)return;
-  c.width=c.offsetWidth;const W=c.width,H=36;
-  const ctx=c.getContext('2d');ctx.clearRect(0,0,W,H);
-  ctx.strokeStyle='rgba(255,255,255,.04)';ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();
-  ctx.strokeStyle='rgba(0,229,255,.7)';ctx.lineWidth=1.4;ctx.beginPath();
-  irHistBuf.forEach((v,i)=>{
-    const x=(i/(irHistBuf.length-1))*W,y=H/2-v*(H*.45);
-    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
-  });
-  ctx.stroke();
-}
-
-function drawSpdHist(){
-  const c=document.getElementById('spd-hist');if(!c)return;
-  c.width=c.offsetWidth;const W=c.width,H=52;
-  const ctx=c.getContext('2d');ctx.clearRect(0,0,W,H);
-  for(let y=0;y<H;y+=13){ctx.strokeStyle='rgba(255,255,255,.04)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
-  const mn=0,mx=80,rng=mx;
-  const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'rgba(0,230,118,.25)');g.addColorStop(1,'rgba(0,230,118,0)');
-  ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(0,H);
-  spdHistory.forEach((v,i)=>{const x=(i/(spdHistory.length-1))*W,y=H-4-((v-mn)/rng)*(H-8);ctx.lineTo(x,y);});
-  ctx.lineTo(W,H);ctx.closePath();ctx.fill();
-  ctx.strokeStyle='rgba(0,230,118,.85)';ctx.lineWidth=1.5;ctx.beginPath();
-  spdHistory.forEach((v,i)=>{const x=(i/(spdHistory.length-1))*W,y=H-4-((v-mn)/rng)*(H-8);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
-  ctx.stroke();
-}
-
-function drawErrHist(){
-  const c=document.getElementById('err-hist');if(!c)return;
-  c.width=c.offsetWidth;const W=c.width,H=52;
-  const ctx=c.getContext('2d');ctx.clearRect(0,0,W,H);
-  ctx.strokeStyle='rgba(255,255,255,.06)';ctx.lineWidth=1;ctx.setLineDash([3,6]);
-  ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();ctx.setLineDash([]);
-  ctx.strokeStyle='rgba(255,109,0,.75)';ctx.lineWidth=1.4;ctx.beginPath();
-  errHistory.forEach((v,i)=>{const x=(i/(errHistory.length-1))*W,y=H/2-v*(H*.45);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
-  ctx.stroke();
-}
-
-function drawPathMap(){
-  const c=document.getElementById('path-canvas');if(!c)return;
-  const W=c.parentElement.offsetWidth||400;
-  const H=Math.round(W*7/16);
-  c.width=W;c.height=H;
-  const ctx=c.getContext('2d');ctx.clearRect(0,0,W,H);
-  const bg=ctx.createRadialGradient(W/2,H/2,10,W/2,H/2,W/2);
-  bg.addColorStop(0,'rgba(0,229,255,.03)');bg.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-  if(pathPoints.length>1){
-    let seg=[];
-    for(let i=0;i<pathPoints.length;i++){
-      const p=pathPoints[i];
-      if(p.estop){
-        if(seg.length>1) drawSeg(ctx,seg,W,H);
-        ctx.beginPath();ctx.arc(p.x*W,p.y*H,5,0,Math.PI*2);ctx.fillStyle='var(--c5)';ctx.shadowBlur=12;ctx.shadowColor='var(--c5)';ctx.fill();ctx.shadowBlur=0;
-        seg=[];
-      } else {
-        seg.push(p);
-      }
-    }
-    if(seg.length>1) drawSeg(ctx,seg,W,H);
-  }
-  if(agvX){
-    ctx.beginPath();ctx.arc(agvX*W,agvY*H,7,0,Math.PI*2);
-    ctx.fillStyle='rgba(0,229,255,.2)';ctx.fill();
-    ctx.beginPath();ctx.arc(agvX*W,agvY*H,4,0,Math.PI*2);
-    ctx.fillStyle='var(--c1)';ctx.shadowBlur=18;ctx.shadowColor='var(--c1)';ctx.fill();ctx.shadowBlur=0;
-    const ax=agvX*W+Math.cos(agvAngle)*14,ay=agvY*H+Math.sin(agvAngle)*14;
-    ctx.beginPath();ctx.moveTo(agvX*W,agvY*H);ctx.lineTo(ax,ay);
-    ctx.strokeStyle='rgba(0,229,255,.5)';ctx.lineWidth=1.5;ctx.stroke();
-  }
-}
-function drawSeg(ctx,seg,W,H){
-  if(seg.length<2)return;
-  const color=seg[0].auto?'rgba(0,230,118,.7)':'rgba(255,109,0,.7)';
-  ctx.strokeStyle=color;ctx.lineWidth=1.8;ctx.lineCap='round';ctx.lineJoin='round';
-  ctx.beginPath();
-  seg.forEach((p,i)=>i===0?ctx.moveTo(p.x*W,p.y*H):ctx.lineTo(p.x*W,p.y*H));
-  ctx.stroke();
-}
-
-function stepAGV(){
-  if(!journeyRunning) return;
-  const spd=parseFloat(document.getElementById('spd-val').textContent)||0;
-  if(spd===0) return;
-  const step=0.004;
-  if(isAuto){
-    agvAngle+=(autoErrCur*.05);
-  } else {
-    const cmd=lastCmd;
-    if(cmd==='LEFT') agvAngle-=0.12;
-    else if(cmd==='RIGHT') agvAngle+=0.12;
-    else if(cmd==='BACKWARD') agvAngle+=Math.PI*.05;
-  }
-  agvX+=Math.cos(agvAngle)*step*spd/50;
-  agvY+=Math.sin(agvAngle)*step*spd/50;
-  agvX=((agvX%1)+1)%1;agvY=((agvY%1)+1)%1;
-  pathPoints.push({x:agvX,y:agvY,auto:isAuto});
-  if(pathPoints.length>600) pathPoints.splice(0,100);
-}
-
-function simLive(){
-  // ĐỌC DỮ LIỆU TỪ ESP32 QUA CHÂN V1 (Ví dụ lấy phần trăm Pin)
-  if(ERA_TOKEN !== "YOUR_TOKEN_HERE") {
-    fetch(`${ERA_API}/get?token=${ERA_TOKEN}&pin=V1`)
-      .then(res => res.json())
-      .then(data => {
-         if(data && data.value !== undefined) {
-             battPct = parseFloat(data.value); // Lấy giá trị đè lên biến mô phỏng
-         }
-      })
-      .catch(e => console.error("Lỗi đọc E-Ra API:", e));
-  }
-
-  distT+=(Math.random()-.5)*4;distT=Math.max(6,Math.min(180,distT));
-  document.getElementById('hcsr-dist').textContent=distT.toFixed(1);
-  document.getElementById('hcsr-bar').style.width=(distT/200*100)+'%';
-  const hcSt=document.getElementById('hcsr-status');
-  if(distT<20){hcSt.textContent='● OBSTACLE';hcSt.className='sc-status ss-warn';}
-  else{hcSt.textContent='● CLEAR';hcSt.className='sc-status ss-ok';}
-  
-  battPct -= (Math.random() * 0.5);
-  battPct = Math.max(0, battPct);
-  battVol = 9.0 + (battPct / 100) * 3.6 + (Math.random() - 0.5) * 0.1;
-  document.getElementById('batt-pct').textContent = Math.round(battPct);
-  document.getElementById('batt-pct-bar').style.width = battPct + '%';
-  document.getElementById('batt-vol').textContent = battVol.toFixed(1);
-  document.getElementById('batt-vol-bar').style.width = ((battVol - 9) / 3.6 * 100) + '%';
-  document.getElementById('batt-draw').textContent = (isAuto || lastCmd !== 'STOP') ? (1.5 + Math.random()).toFixed(1) : (0.2 + Math.random()*0.1).toFixed(1);
-
-  if(battPct < 20) {
-      document.getElementById('batt-status').textContent = '⚠ LOW BATTERY';
-      document.getElementById('batt-status').className = 'sc-status ss-warn';
-      document.getElementById('batt-pct').style.color = 'var(--c5)';
-      document.getElementById('batt-pct-bar').style.background = 'var(--c5)';
-  } else {
-      document.getElementById('batt-status').textContent = '● DISCHARGING';
-      document.getElementById('batt-status').className = 'sc-status ss-ok';
-      document.getElementById('batt-pct').style.color = '#4ade80';
-      document.getElementById('batt-pct-bar').style.background = 'linear-gradient(90deg,#22c55e,#4ade80)';
-  }
-
-  rpmAt+=(Math.random()-.5)*10;rpmAt=Math.max(0,Math.min(480,rpmAt));
-  rpmBt=rpmAt+(Math.random()-.5)*8;
-  document.getElementById('rpm-a').textContent=Math.round(rpmAt);
-  document.getElementById('rpm-b').textContent=Math.round(rpmBt);
-  document.getElementById('rpm-a-bar').style.width=(rpmAt/500*100)+'%';
-  document.getElementById('rpm-b-bar').style.width=(rpmBt/500*100)+'%';
-  document.getElementById('enc-diff').textContent=(Math.round(rpmAt-rpmBt)>0?'+':'')+Math.round(rpmAt-rpmBt);
-  rpmHistBuf.push(Math.round(rpmAt));rpmHistBuf.shift();
-  if(journeyRunning && journeyStartTime){
-    const elapsed=Math.floor((Date.now()-journeyStartTime)/1000);
-    const m=Math.floor(elapsed/60),s=elapsed%60;
-    document.getElementById('j-time').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
-    document.getElementById('j-dist').textContent=journeyDist.toFixed(1);
-    const avgSpd=journeyDist/Math.max(elapsed,1)*100;
-    document.getElementById('j-spd').textContent=avgSpd.toFixed(1);
-  }
-}
-
-function animLoop(){
-  drawPID();drawBatt();drawRadar();drawEnc();drawIRHistory();drawSpdHist();drawErrHist();drawPathMap();
-  requestAnimationFrame(animLoop);
-}
-
-window.addEventListener('load',()=>{
-  animLoop();
-  renderCargoLog(); // Render log table initially
-  setInterval(simLive,1800);
-  setInterval(()=>{if(isAuto)autoStep();stepAGV();},200);
-});
+<!-- E-Ra -->
 <script src="https://eoh-jsc.github.io/era-widget/era_widget.js"></script>
 
 <script>
-/* ================= E-RA INIT ================= */
 let eraWidget = null;
 let eraConfig = null;
 
 function initEra() {
     if (typeof EraWidget === 'undefined') {
-        console.warn("Đang chờ EraWidget...");
         setTimeout(initEra, 500);
         return;
     }
@@ -1367,11 +77,7 @@ function initEra() {
     eraWidget.init({
         onConfiguration: (config) => {
             eraConfig = config;
-            console.log("Config:", config);
-        },
-
-        onValues: (values) => {
-            console.log("Realtime:", values);
+            console.log("Config OK");
         }
     });
 }
@@ -1382,112 +88,70 @@ const zone = document.getElementById('joy-zone');
 const puck = document.getElementById('joy-puck');
 
 let drag = false;
-let jcx = 0, jcy = 0, mr = 0;
-let lastCmd = "STOP";
+let cx = 0, cy = 0, maxR = 0;
 
-const arrowIds = {
-    FORWARD: 'aF',
-    BACKWARD: 'aB',
-    LEFT: 'aL',
-    RIGHT: 'aR',
-    STOP: 'aS'
-};
-
-/* ================= GỬI LỆNH ================= */
-function sendToESP(cmd) {
-    const cmdMap = {
-        STOP: 0,
-        FORWARD: 1,
-        BACKWARD: 2,
-        LEFT: 3,
-        RIGHT: 4
-    };
+function sendXY(x, y) {
+    document.getElementById('xVal').innerText = x;
+    document.getElementById('yVal').innerText = y;
 
     if (eraWidget && eraConfig) {
-        let control = eraConfig.control_configs?.[0]; // V0
-
+        let control = eraConfig.control_configs?.[0];
         if (control) {
-            eraWidget.write(control.id, cmdMap[cmd] || 0);
-            console.log("Send:", cmd, cmdMap[cmd]);
+            eraWidget.write(control.id, JSON.stringify({
+                x: x,
+                y: y
+            }));
         }
     }
 }
 
-/* ================= SET COMMAND ================= */
-function setCmd(cmd) {
-    if (cmd === lastCmd) return;
-    lastCmd = cmd;
-
-    document.getElementById('cmd-out').innerText = cmd;
-
-    Object.values(arrowIds).forEach(id =>
-        document.getElementById(id).classList.remove('lit')
-    );
-
-    document.getElementById(arrowIds[cmd]).classList.add('lit');
-
-    sendToESP(cmd);
-}
-
-/* ================= MOVE JOYSTICK ================= */
-function movePuck(e) {
+function move(e) {
     const px = e.touches ? e.touches[0].clientX : e.clientX;
     const py = e.touches ? e.touches[0].clientY : e.clientY;
 
-    let dx = px - jcx;
-    let dy = py - jcy;
+    let dx = px - cx;
+    let dy = py - cy;
 
-    let d = Math.sqrt(dx * dx + dy * dy);
+    let dist = Math.sqrt(dx*dx + dy*dy);
 
-    if (d > mr) {
-        dx = dx / d * mr;
-        dy = dy / d * mr;
+    if (dist > maxR) {
+        dx = dx / dist * maxR;
+        dy = dy / dist * maxR;
     }
 
     puck.style.transform =
         `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
 
-    let cmd = "STOP";
+    let x = Math.round(dx / maxR * 100);
+    let y = Math.round(dy / maxR * 100);
 
-    if (d > 20) {
-        if (Math.abs(dx) > Math.abs(dy)) {
-            cmd = dx > 0 ? "RIGHT" : "LEFT";
-        } else {
-            cmd = dy > 0 ? "BACKWARD" : "FORWARD";
-        }
-    }
-
-    setCmd(cmd);
+    sendXY(x, -y); // đảo trục Y
 }
 
-/* ================= EVENT ================= */
+/* MOUSE */
 zone.addEventListener('mousedown', e => {
     drag = true;
     puck.style.transition = 'none';
 
-    mr = zone.offsetWidth / 2 - puck.offsetWidth / 2;
+    maxR = zone.offsetWidth/2 - puck.offsetWidth/2;
 
-    const r = zone.getBoundingClientRect();
-    jcx = r.left + r.width / 2;
-    jcy = r.top + r.height / 2;
+    let rect = zone.getBoundingClientRect();
+    cx = rect.left + rect.width/2;
+    cy = rect.top + rect.height/2;
 
-    movePuck(e);
+    move(e);
 });
 
 document.addEventListener('mousemove', e => {
     if (!drag) return;
-    e.preventDefault();
-    movePuck(e);
+    move(e);
 });
 
 document.addEventListener('mouseup', () => {
-    if (!drag) return;
     drag = false;
-
-    puck.style.transition = '0.3s';
+    puck.style.transition = '0.2s';
     puck.style.transform = 'translate(-50%, -50%)';
-
-    setCmd("STOP");
+    sendXY(0, 0);
 });
 
 /* MOBILE */
@@ -1495,30 +159,28 @@ zone.addEventListener('touchstart', e => {
     drag = true;
     puck.style.transition = 'none';
 
-    mr = zone.offsetWidth / 2 - puck.offsetWidth / 2;
+    maxR = zone.offsetWidth/2 - puck.offsetWidth/2;
 
-    const r = zone.getBoundingClientRect();
-    jcx = r.left + r.width / 2;
-    jcy = r.top + r.height / 2;
+    let rect = zone.getBoundingClientRect();
+    cx = rect.left + rect.width/2;
+    cy = rect.top + rect.height/2;
 
-    movePuck(e);
-}, { passive: false });
+    move(e);
+}, {passive:false});
 
 document.addEventListener('touchmove', e => {
     if (!drag) return;
     e.preventDefault();
-    movePuck(e);
-}, { passive: false });
+    move(e);
+}, {passive:false});
 
 document.addEventListener('touchend', () => {
-    if (!drag) return;
     drag = false;
-
-    puck.style.transition = '0.3s';
+    puck.style.transition = '0.2s';
     puck.style.transform = 'translate(-50%, -50%)';
-
-    setCmd("STOP");
+    sendXY(0, 0);
 });
 </script>
+
 </body>
 </html>
