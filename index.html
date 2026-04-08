@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Joystick ESP32</title>
+<title>Joystick E-Ra</title>
 
 <style>
 body {
@@ -17,25 +17,25 @@ body {
 }
 
 #joy-zone {
-    width: 250px;
-    height: 250px;
+    width: 260px;
+    height: 260px;
     border-radius: 50%;
     background: #111;
     border: 3px solid #00e5ff;
     position: relative;
-    box-shadow: 0 0 20px #00e5ff55;
+    box-shadow: 0 0 25px #00e5ff55;
 }
 
 #joy-puck {
-    width: 80px;
-    height: 80px;
+    width: 90px;
+    height: 90px;
     background: #00e5ff;
     border-radius: 50%;
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    box-shadow: 0 0 20px #00e5ff;
+    box-shadow: 0 0 25px #00e5ff;
     transition: 0.2s;
 }
 
@@ -59,15 +59,16 @@ body {
     Y: <span id="yVal">0</span>
 </div>
 
-<!-- E-Ra -->
 <script src="https://eoh-jsc.github.io/era-widget/era_widget.js"></script>
 
 <script>
 let eraWidget = null;
 let eraConfig = null;
 
+/* ================= INIT ERA ================= */
 function initEra() {
     if (typeof EraWidget === 'undefined') {
+        console.warn("Đang chờ EraWidget...");
         setTimeout(initEra, 500);
         return;
     }
@@ -77,10 +78,14 @@ function initEra() {
     eraWidget.init({
         onConfiguration: (config) => {
             eraConfig = config;
-            console.log("Config OK");
+            console.log("✅ CONFIG OK:", config);
+        },
+        onValues: (values) => {
+            console.log("📡 VALUES:", values);
         }
     });
 }
+
 initEra();
 
 /* ================= JOYSTICK ================= */
@@ -94,15 +99,23 @@ function sendXY(x, y) {
     document.getElementById('xVal').innerText = x;
     document.getElementById('yVal').innerText = y;
 
-    if (eraWidget && eraConfig) {
-        let control = eraConfig.control_configs?.[0];
-        if (control) {
-            eraWidget.write(control.id, JSON.stringify({
-                x: x,
-                y: y
-            }));
-        }
+    if (!eraWidget || !eraConfig) {
+        console.warn("❌ Chưa có config từ E-Ra");
+        return;
     }
+
+    let control = eraConfig.control_configs?.[0];
+
+    if (!control) {
+        console.error("❌ Không tìm thấy V0 control");
+        return;
+    }
+
+    let payload = JSON.stringify({ x: x, y: y });
+
+    console.log("🚀 SEND:", payload);
+
+    eraWidget.write(control.id, payload);
 }
 
 function move(e) {
